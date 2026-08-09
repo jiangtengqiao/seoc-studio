@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: seoc-studio
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_BASE
+        value: /
+      - key: VITE_SUPABASE_URL
+        value: https://hjmgwlxohxinqhwxdspf.supabase.co
+      - key: VITE_SUPABASE_ANON_KEY
+        value: sb_publishable_Fy2dQ7r6ZTKwES7LMdmr3g_6f-iI3mL
