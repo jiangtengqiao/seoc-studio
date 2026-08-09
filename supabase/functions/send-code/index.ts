@@ -1,8 +1,8 @@
-// SEOC Studio 验证码发送函数
-// 部署：supabase functions deploy send-code
-// 机密：supabase secrets set RESEND_API_KEY=xxxxx
+// SEOC Studio 验证码发送函数（QQ 邮箱 SMTP 版）
+// 机密：supabase secrets set SMTP_USER=jiangtengqiao@qq.com SMTP_PASS=授权码
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
 
 const SITE = 'https://jiangtengqiao.github.io/seoc-studio/';
 const CONTACT = 'jiangtengqiao@qq.com';
@@ -100,6 +100,28 @@ function emailHtml(code: string, purpose: string): string {
 </body></html>`;
 }
 
+async function sendMail(to: string, subject: string, html: string) {
+  const user = Deno.env.get('SMTP_USER');
+  const pass = Deno.env.get('SMTP_PASS');
+  if (!user || !pass) throw new Error('SMTP 未配置');
+  const client = new SMTPClient({
+    connection: {
+      hostname: 'smtp.qq.com',
+      port: 465,
+      tls: true,
+      auth: { username: user, password: pass }
+    }
+  });
+  await client.send({
+    from: `SEOC Studio <${user}>`,
+    to,
+    subject,
+    content: '请使用支持 HTML 的邮件客户端查看本邮件。',
+    html
+  });
+  await client.close();
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
@@ -113,7 +135,6 @@ Deno.serve(async (req) => {
 
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-    // 重置密码前确认账户存在
     if (purpose === 'reset') {
       const { data: p } = await admin.from('profiles').select('id').eq('email', email).maybeSingle();
       if (!p) {
@@ -131,23 +152,8 @@ Deno.serve(async (req) => {
     });
     if (insErr) throw insErr;
 
-    const resendKey = Deno.env.get('RESEND_API_KEY');
-    if (!resendKey) throw new Error('RESEND_API_KEY 未配置');
     const subject = purpose === 'register' ? `【SEOC Studio】注册验证码 ${code}` : `【SEOC Studio】重置密码验证码 ${code}`;
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'SEOC Studio <onboarding@resend.dev>',
-        to: [email],
-        subject,
-        html: emailHtml(code, purpose)
-      })
-    });
-    if (!r.ok) {
-      const t = await r.text();
-      throw new Error('邮件发送失败：' + t);
-    }
+    await sendMail(email, subject, emailHtml(code, purpose));
 
     return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, 'Content-Type': 'application/json' } });
   } catch (e) {
