@@ -5,11 +5,13 @@ import { fetchMaterials, fetchPurchases } from '../lib/content';
 import { getProduct } from '../data/products';
 import { CONTACT_EMAIL, type Material, type Purchase } from '../lib/types';
 import { PageHeader, Spinner } from '../components/ui';
+import { fetchMyInquiries, type Inquiry } from '../lib/inquiries';
 
 export default function Account() {
   const { profile, loading } = useAuth();
   const nav = useNavigate();
   const [purchases, setPurchases] = useState<Purchase[] | null>(null);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [materials, setMaterials] = useState<Record<string, Material[]>>({});
 
   useEffect(() => {
@@ -18,6 +20,7 @@ export default function Account() {
 
   useEffect(() => {
     if (!profile) return;
+    fetchMyInquiries(profile.id).then(setInquiries);
     fetchPurchases(profile.id).then(async (ps) => {
       setPurchases(ps);
       const map: Record<string, Material[]> = {};
@@ -123,6 +126,32 @@ export default function Account() {
                 ))}
               </ul>
             </>
+          )}
+        </section>
+        <section className="card p-6 lg:col-span-3">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-slate-900">我的咨询与选购申请</h2>
+            <Link to="/assessment" className="text-xs text-brand-600 hover:underline">查看我的评估历史</Link>
+          </div>
+          {inquiries.length === 0 ? (
+            <p className="text-sm text-slate-500">暂无记录。在任何产品页点击「申请选购 / 咨询客服」即可发起。</p>
+          ) : (
+            <ul className="space-y-3">
+              {inquiries.map((q) => (
+                <li key={q.id} className="rounded-xl border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className={`badge ${q.status === 'open' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {q.status === 'open' ? '等待回复' : '已回复'}
+                    </span>
+                    <span className="text-xs text-slate-400">{new Date(q.created_at).toLocaleString('zh-CN')}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-700">{q.message}</p>
+                  {q.reply && (
+                    <p className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800">客服回复：{q.reply}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       </div>

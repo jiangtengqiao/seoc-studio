@@ -7,7 +7,7 @@ export const PRODUCTS: Product[] = [
     index: 1,
     title: 'Python 的起源研究与探索',
     titleEn: 'Origins of Python: Research and Exploration',
-    price: 40,
+    price: 49,
     unit: '一次性购入，永久查阅',
     maintenance: '持续维护',
     updating: '持续更新',
@@ -31,7 +31,7 @@ export const PRODUCTS: Product[] = [
     index: 2,
     title: 'C++ 的起源研究与探索',
     titleEn: 'Origins of C++: Research and Exploration',
-    price: 42,
+    price: 49,
     unit: '一次性购入，永久查阅',
     maintenance: '持续维护',
     updating: '持续更新',
@@ -55,7 +55,7 @@ export const PRODUCTS: Product[] = [
     index: 3,
     title: 'Python 使用指南',
     titleEn: 'Python Practical Guide',
-    price: 75,
+    price: 89,
     unit: '一次性购入，永久查阅',
     maintenance: '持续维护',
     updating: '持续更新',
@@ -81,7 +81,7 @@ export const PRODUCTS: Product[] = [
     index: 4,
     title: 'C++ 使用指南',
     titleEn: 'C++ Practical Guide',
-    price: 78,
+    price: 95,
     unit: '一次性购入，永久查阅',
     maintenance: '持续维护',
     updating: '持续更新',
@@ -107,7 +107,7 @@ export const PRODUCTS: Product[] = [
     index: 1,
     title: 'Python 自行制作可训练人工智能 AI 系列教程',
     titleEn: 'Build a Trainable AI with Python',
-    price: 428,
+    price: 468,
     unit: '系列教程',
     issuesTotal: 10,
     wordsPerIssue: '每期正文不少于 5000 汉字',
@@ -136,7 +136,7 @@ export const PRODUCTS: Product[] = [
     category: 'specialized',
     index: 2,
     title: 'Python 图表的高级制作与表达系列教程',
-    price: 188,
+    price: 219,
     unit: '系列教程',
     issuesTotal: 6,
     wordsPerIssue: '每期正文不少于 5000 汉字',
@@ -158,11 +158,11 @@ export const PRODUCTS: Product[] = [
   },
   ...([3, 4, 5, 6, 7] as const).map((i) => {
     const levels = [
-      { key: 'beginner', name: '入门级', price: 29.9, materials: false },
-      { key: 'intermediate', name: '中级', price: 43.9, materials: true },
-      { key: 'advanced', name: '高级', price: 82.8, materials: true },
-      { key: 'master', name: '大师级', price: 141.83, materials: true },
-      { key: 'supreme', name: '顶级', price: 259.8, materials: true }
+      { key: 'beginner', name: '入门级', price: 35, materials: false },
+      { key: 'intermediate', name: '中级', price: 55, materials: true },
+      { key: 'advanced', name: '高级', price: 99, materials: true },
+      { key: 'master', name: '大师级', price: 169, materials: true },
+      { key: 'supreme', name: '顶级', price: 289, materials: true }
     ];
     const lv = levels[i - 3];
     return {
@@ -194,7 +194,7 @@ export const PRODUCTS: Product[] = [
     index: 8,
     title: '超越游戏的存在（尊享级）',
     titleEn: 'Beyond Games: Premium',
-    price: 398.8,
+    price: 429,
     unit: '尊享级项目',
     issuesTotal: 6,
     wordsPerIssue: '每期正文不少于 5000 汉字',
@@ -215,14 +215,14 @@ export const PRODUCTS: Product[] = [
     ]
   },
   ...([
-    { i: 1, slug: 'exp-python-libs', t: 'Python 主流库与对应应用', p: 145, n: 7 },
-    { i: 2, slug: 'exp-python-crawler', t: 'Python 爬虫的热门探讨', p: 150, n: 5 },
-    { i: 3, slug: 'exp-python-frontend', t: 'Python 前端开发系列', p: 99, n: 5 },
-    { i: 4, slug: 'exp-python-backend', t: 'Python 后端开发的庞大量内容', p: 298, n: 5 },
-    { i: 5, slug: 'exp-python-web', t: 'Python 在 Web 领域的问题与内容', p: 128, n: 3 },
-    { i: 6, slug: 'exp-python-app', t: 'Python 在 Application 开发领域的内容', p: 138, n: 3 },
-    { i: 7, slug: 'exp-python-ai', t: 'Python 在 AI (Artificial Intelligence) 中的应用', p: 188, n: 2 },
-    { i: 8, slug: 'exp-python-ai-advanced', t: 'Python 带 AI 的高阶应用', p: 288, n: 2 }
+    { i: 1, slug: 'exp-python-libs', t: 'Python 主流库与对应应用', p: 169, n: 7 },
+    { i: 2, slug: 'exp-python-crawler', t: 'Python 爬虫的热门探讨', p: 179, n: 5 },
+    { i: 3, slug: 'exp-python-frontend', t: 'Python 前端开发系列', p: 119, n: 5 },
+    { i: 4, slug: 'exp-python-backend', t: 'Python 后端开发的庞大量内容', p: 329, n: 5 },
+    { i: 5, slug: 'exp-python-web', t: 'Python 在 Web 领域的问题与内容', p: 149, n: 3 },
+    { i: 6, slug: 'exp-python-app', t: 'Python 在 Application 开发领域的内容', p: 159, n: 3 },
+    { i: 7, slug: 'exp-python-ai', t: 'Python 在 AI (Artificial Intelligence) 中的应用', p: 219, n: 2 },
+    { i: 8, slug: 'exp-python-ai-advanced', t: 'Python 带 AI 的高阶应用', p: 319, n: 2 }
   ] as const).map(({ i, slug, t, p, n }) => ({
     slug,
     category: 'exploration' as const,
@@ -238,7 +238,7 @@ export const PRODUCTS: Product[] = [
       '高阶学者向，初学者慎入',
       '可加入 QQ 群或微信群学术交流（任选一个）',
       i >= 7 ? '每期附 1 至 3 个补丁' : '按期刊连载',
-      '最低需购入 3 个子项目，总期刊包 1313 元'
+      '最低需购入 3 个子项目，总期刊包 1445 元'
     ],
     materialsIncluded: false,
     lang: '中文',
@@ -248,7 +248,8 @@ export const PRODUCTS: Product[] = [
   }))
 ];
 
-export const EXPLORATION_BUNDLE_PRICE = 1313;
+export const EXPLORATION_BUNDLE_PRICE = 1445;
+export const EXPLORATION_BUNDLE_ORIGINAL = 1642;
 export const EXPLORATION_MIN_ITEMS = 3;
 
 export function getProduct(slug: string): Product | undefined {

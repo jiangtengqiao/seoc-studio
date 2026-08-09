@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth';
 import { CATEGORY_META, CONTACT_EMAIL, type Material, type Purchase } from '../lib/types';
 import { EmptyState, PageHeader, PriceTag } from '../components/ui';
 import { LensGate } from '../components/fx';
+import { submitInquiry } from '../lib/inquiries';
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -13,6 +14,9 @@ export default function ProductDetail() {
   const { profile } = useAuth();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [showConsult, setShowConsult] = useState(false);
+  const [consultMsg, setConsultMsg] = useState('');
+  const [consultState, setConsultState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
 
   useEffect(() => {
     if (!product) return;
@@ -111,8 +115,8 @@ export default function ProductDetail() {
               <h2 className="mb-3 text-base font-semibold text-slate-900">正文节选探照灯</h2>
               <LensGate
                 title={`《${product.title}》${firstIssue.title} 节选`}
-                className="h-80 rounded-2xl border border-slate-200 shadow-card"
-                excerpt={firstIssue.content_md.replace(/[#*`>]/g, '').split('\n').filter((l) => l.trim()).slice(0, 8).join('\n').slice(0, 700)}
+                className="h-[28rem] rounded-2xl border border-slate-200 shadow-card"
+                excerpt={firstIssue.content_md.replace(/[#*`>]/g, '').split('\n').filter((l) => l.trim()).slice(0, 20).join('\n').slice(0, 1600)}
                 cta={
                   profile ? undefined : (
                     <Link to="/auth/register" className="btn mt-2 bg-white text-brand-800 hover:bg-brand-50">
@@ -155,16 +159,58 @@ export default function ProductDetail() {
               ))}
             </ul>
             {profile ? (
-              <a
-                className="btn-primary mt-6 w-full"
-                href={`mailto:${CONTACT_EMAIL}?subject=${mailSubject}&body=${mailBody}`}
-              >
-                邮件联系选购
-              </a>
+              <button className="btn-primary mt-6 w-full" onClick={() => setShowConsult(!showConsult)}>
+                {showConsult ? '收起咨询表单' : '申请选购 / 咨询客服'}
+              </button>
             ) : (
               <Link to={`/auth/login?next=${encodeURIComponent(`/product/${product.slug}`)}`} className="btn-primary mt-6 w-full">
                 登录后选购
               </Link>
+            )}
+            {profile && showConsult && (
+              <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50/50 p-4" style={{ animation: 'rise-in 0.3s ease both' }}>
+                {consultState === 'done' ? (
+                  <p className="text-sm leading-6 text-brand-800">
+                    已收到您的申请。客服（负责人 JTQ）会在核实后通过邮件与您确认价格、支付与开通事宜，回复也会同步显示在用户中心的「我的咨询」里。
+                  </p>
+                ) : (
+                  <>
+                    <p className="mb-2 text-xs text-slate-500">
+                      可填写选购意向、希望购买的组合、或任何疑问，客服将为您提供购买建议与指引。
+                    </p>
+                    <textarea
+                      className="input min-h-24 text-sm"
+                      placeholder={`例如：我想购买本项目，请告诉我接下来怎么操作。`}
+                      value={consultMsg}
+                      onChange={(e) => setConsultMsg(e.target.value)}
+                    />
+                    <button
+                      className="btn-primary mt-3 w-full"
+                      disabled={consultState === 'busy' || consultMsg.trim().length < 5}
+                      onClick={async () => {
+                        setConsultState('busy');
+                        const err = await submitInquiry({
+                          userId: profile.id,
+                          email: profile.email,
+                          kind: 'purchase',
+                          productSlug: product.slug,
+                          message: consultMsg.trim()
+                        });
+                        setConsultState(err ? 'error' : 'done');
+                      }}
+                    >
+                      {consultState === 'busy' ? '提交中' : '提交选购申请'}
+                    </button>
+                    {consultState === 'error' && <p className="mt-2 text-xs text-red-600">提交失败，请改用下方邮件方式。</p>}
+                  </>
+                )}
+                <a
+                  className="mt-3 block text-center text-xs text-slate-500 hover:text-brand-600"
+                  href={`mailto:${CONTACT_EMAIL}?subject=${mailSubject}&body=${mailBody}`}
+                >
+                  也可以直接发送邮件至 {CONTACT_EMAIL}
+                </a>
+              </div>
             )}
             {product.category === 'exploration' && (
               <Link to="/assessment" className="btn-outline mt-2 w-full">

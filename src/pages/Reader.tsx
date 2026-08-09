@@ -7,6 +7,7 @@ import { getProduct } from '../data/products';
 import { useAuth } from '../lib/auth';
 import type { Issue } from '../lib/types';
 import { EmptyState, Spinner } from '../components/ui';
+import ContentGuard from '../components/ContentGuard';
 
 export default function Reader() {
   const { slug, issue } = useParams();
@@ -100,6 +101,7 @@ export default function Reader() {
           {focus ? '退出专注模式' : '专注模式'}
         </button>
       </div>
+      <ContentGuard>
       <article className="card p-6 sm:p-10" style={{ animation: 'rise-in 0.5s ease both' }}>
         <header className="mb-6 border-b border-slate-100 pb-5">
           <h1 className="text-2xl font-bold text-brand-950">{data.title}</h1>
@@ -124,6 +126,7 @@ export default function Reader() {
           </section>
         )}
       </article>
+      </ContentGuard>
       <div className="mt-6 flex justify-between text-sm">
         {issueNo > 1 ? (
           <Link className="btn-outline" to={`/reader/${product.slug}/${issueNo - 1}`}>上一期</Link>

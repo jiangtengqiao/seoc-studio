@@ -3,10 +3,11 @@ import { useAuth } from '../lib/auth';
 import { isCloudEnabled, supabase } from '../lib/supabase';
 import { PRODUCTS } from '../data/products';
 import { PageHeader, Spinner } from '../components/ui';
+import { fetchAllInquiries, replyInquiry, type Inquiry } from '../lib/inquiries';
 
 export default function Admin() {
   const { profile, loading } = useAuth();
-  const [tab, setTab] = useState<'issue' | 'announcement' | 'purchase'>('issue');
+  const [tab, setTab] = useState<'issue' | 'announcement' | 'purchase' | 'inquiry'>('issue');
   const [msg, setMsg] = useState<string | null>(null);
 
   const [slug, setSlug] = useState(PRODUCTS[0].slug);
@@ -15,6 +16,14 @@ export default function Admin() {
   const [body, setBody] = useState('');
 
   const [pending, setPending] = useState<{ id: string; email: string; product_slug: string; created_at: string }[]>([]);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (tab === 'inquiry' && profile?.role === 'admin') {
+      fetchAllInquiries().then(setInquiries);
+    }
+  }, [tab, profile]);
 
   useEffect(() => {
     if (tab === 'purchase' && isCloudEnabled && supabase && profile?.role === 'admin') {
@@ -92,7 +101,8 @@ export default function Admin() {
           {([
             ['issue', '发布期刊'],
             ['announcement', '发布公告'],
-            ['purchase', '选购确认']
+            ['purchase', '选购确认'],
+            ['inquiry', '咨询与选购申请']
           ] as const).map(([k, label]) => (
             <button
               key={k}
@@ -149,6 +159,61 @@ export default function Admin() {
             </div>
             <button className="btn-primary">发布公告</button>
           </form>
+        )}
+
+        {tab === 'inquiry' && (
+          <div className="space-y-4">
+            {inquiries.length === 0 ? (
+              <div className="card p-6 text-sm text-slate-500">暂无咨询或选购申请。</div>
+            ) : (
+              inquiries.map((q) => (
+                <div key={q.id} className="card p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-slate-900">
+                      {q.email}
+                      <span className="ml-2 badge bg-brand-50 text-brand-700">
+                        {q.kind === 'purchase' ? '选购申请' : q.kind === 'consult' ? '购买咨询' : '问题'}
+                      </span>
+                      {q.product_slug && <span className="ml-2 badge bg-slate-100 text-slate-600">{q.product_slug}</span>}
+                    </p>
+                    <span className={`badge ${q.status === 'open' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {q.status === 'open' ? '待回复' : '已回复'}
+                    </span>
+                  </div>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{q.message}</p>
+                  <p className="mt-1 text-xs text-slate-400">{new Date(q.created_at).toLocaleString('zh-CN')}</p>
+                  {q.reply ? (
+                    <p className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800">我的回复：{q.reply}</p>
+                  ) : (
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        className="input flex-1 !py-1.5 text-sm"
+                        placeholder="输入回复内容（用户可在其账户中看到，建议同时邮件通知）"
+                        value={replyDrafts[q.id] || ''}
+                        onChange={(e) => setReplyDrafts((d) => ({ ...d, [q.id]: e.target.value }))}
+                      />
+                      <button
+                        className="btn-primary !py-1.5 !text-xs"
+                        disabled={!(replyDrafts[q.id] || '').trim()}
+                        onClick={async () => {
+                          await replyInquiry(q.id, (replyDrafts[q.id] || '').trim());
+                          setInquiries(await fetchAllInquiries());
+                        }}
+                      >
+                        回复
+                      </button>
+                      <a
+                        className="btn-outline !py-1.5 !text-xs"
+                        href={`mailto:${q.email}?subject=${encodeURIComponent('SEOC Studio 选购咨询回复')}&body=${encodeURIComponent((replyDrafts[q.id] || '').trim() || '您好，')}`}
+                      >
+                        邮件回复
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         )}
 
         {tab === 'purchase' && (
