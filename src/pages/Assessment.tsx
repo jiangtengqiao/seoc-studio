@@ -7,13 +7,15 @@ import { useAuth } from '../lib/auth';
 interface Q {
   id: string;
   text: string;
-  options: { label: string; score: number }[];
+  hint?: string;
+  options: { label: string; desc?: string; score: number }[];
 }
 
 const QUESTIONS: Q[] = [
   {
     id: 'exp',
     text: '您的编程经验年限',
+    hint: '按实际写代码的时间计算，学习理论不计入',
     options: [
       { label: '尚未写过代码', score: 0 },
       { label: '1 年以内', score: 1 },
@@ -64,6 +66,7 @@ const QUESTIONS: Q[] = [
   {
     id: 'time',
     text: '每周可投入的学习时间',
+    hint: '诚实作答，这会直接影响推荐门类的强度',
     options: [
       { label: '不足 2 小时', score: 0 },
       { label: '2 至 5 小时', score: 1 },
@@ -116,94 +119,143 @@ function verdictOf(score: number, max: number): Verdict {
 
 export default function Assessment() {
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [idx, setIdx] = useState(0);
+  const [dir, setDir] = useState<'next' | 'prev'>('next');
   const [submitted, setSubmitted] = useState(false);
   const { profile } = useAuth();
   const nav = useNavigate();
 
   const max = QUESTIONS.length * 3;
   const score = useMemo(() => Object.values(answers).reduce((a, b) => a + b, 0), [answers]);
-  const done = Object.keys(answers).length === QUESTIONS.length;
   const verdict = verdictOf(score, max);
+  const q = QUESTIONS[idx];
+  const progress = (Object.keys(answers).length / QUESTIONS.length) * 100;
   const mailBody = encodeURIComponent(
     `您好，我完成了官网免费能力评估。\n评定等级：${verdict.level}\n得分：${score}/${max}\n请为我提供购买指引，谢谢。`
   );
+
+  const choose = (s: number) => {
+    setAnswers((a) => ({ ...a, [q.id]: s }));
+    setDir('next');
+    setTimeout(() => {
+      if (idx < QUESTIONS.length - 1) setIdx(idx + 1);
+    }, 280);
+  };
 
   return (
     <div>
       <PageHeader
         title="免费能力评估"
-        sub="探索式项目因其特殊性质，购买前需完成评估。评估完全免费，结果仅用于为您提供购买指引。"
+        sub="探索式项目因其特殊性质，购买前需完成评估。共 6 题，约两分钟，评估完全免费。"
       />
-      <div className="container-x max-w-3xl py-10">
-        <div className="space-y-6">
-          {QUESTIONS.map((q, qi) => (
-            <fieldset key={q.id} className="card p-5">
-              <legend className="sr-only">{q.text}</legend>
-              <p className="mb-3 text-sm font-medium text-slate-800">
-                {qi + 1}. {q.text}
-              </p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {q.options.map((o) => {
+      <div className="container-x max-w-2xl py-10">
+        {!submitted ? (
+          <>
+            <div className="mb-6">
+              <div className="mb-2 flex justify-between text-xs text-slate-500">
+                <span>第 {idx + 1} / {QUESTIONS.length} 题</span>
+                <span>已完成 {Math.round(progress)}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-brand-500 to-accent-500 transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            <div key={q.id} className="card p-6 sm:p-8" style={{ animation: `${dir === 'next' ? 'rise-in' : 'rise-in'} 0.35s ease both` }}>
+              <p className="text-base font-semibold text-slate-900">{q.text}</p>
+              {q.hint && <p className="mt-1 text-xs text-slate-400">{q.hint}</p>}
+              <div className="mt-5 grid gap-2.5">
+                {q.options.map((o, oi) => {
                   const checked = answers[q.id] === o.score;
                   return (
                     <button
                       key={o.label}
                       type="button"
-                      onClick={() => {
-                        setAnswers((a) => ({ ...a, [q.id]: o.score }));
-                        setSubmitted(false);
-                      }}
-                      className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
-                        checked
-                          ? 'border-brand-500 bg-brand-50 text-brand-800'
-                          : 'border-slate-200 text-slate-600 hover:border-brand-300'
+                      onClick={() => choose(o.score)}
+                      className={`group flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card ${
+                        checked ? 'border-brand-500 bg-brand-50 text-brand-800' : 'border-slate-200 text-slate-600 hover:border-brand-300'
                       }`}
+                      style={{ animation: `rise-in 0.3s ease ${oi * 60}ms both` }}
                     >
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] transition ${
+                          checked ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-300 text-slate-400 group-hover:border-brand-400'
+                        }`}
+                      >
+                        {checked ? '✓' : String.fromCharCode(65 + oi)}
+                      </span>
                       {o.label}
                     </button>
                   );
                 })}
               </div>
-            </fieldset>
-          ))}
-        </div>
+            </div>
 
-        <button
-          className="btn-primary mt-8 w-full sm:w-auto"
-          disabled={!done}
-          onClick={() => {
-            if (!profile) {
-              nav('/auth/login?next=' + encodeURIComponent('/assessment'));
-              return;
-            }
-            setSubmitted(true);
-          }}
-        >
-          {done ? (profile ? '查看评估结果' : '登录后查看评估结果') : `还有 ${QUESTIONS.length - Object.keys(answers).length} 题未作答`}
-        </button>
-        {!profile && (
-          <p className="mt-3 text-xs text-slate-500">
-            评估免费，但评估结果需要登录后生成并保存到您的账户。没有账户？
-            <Link to="/auth/register" className="text-brand-600 hover:underline">免费注册</Link>
-          </p>
-        )}
-
-        {submitted && done && (
-          <section className={`mt-8 rounded-2xl p-6 ${verdict.tone}`}>
+            <div className="mt-6 flex items-center justify-between">
+              <button
+                className="btn-ghost"
+                disabled={idx === 0}
+                onClick={() => {
+                  setDir('prev');
+                  setIdx(idx - 1);
+                }}
+              >
+                上一题
+              </button>
+              {Object.keys(answers).length === QUESTIONS.length ? (
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    if (!profile) {
+                      nav('/auth/login?next=' + encodeURIComponent('/assessment'));
+                      return;
+                    }
+                    setSubmitted(true);
+                  }}
+                >
+                  {profile ? '生成评估结果' : '登录后生成结果'}
+                </button>
+              ) : (
+                <span className="text-xs text-slate-400">答完全部题目后生成结果</span>
+              )}
+            </div>
+            {!profile && (
+              <p className="mt-3 text-center text-xs text-slate-500">
+                评估结果需要登录后生成并保存到您的账户。
+                <Link to="/auth/register" className="text-brand-600 hover:underline">免费注册</Link>
+              </p>
+            )}
+          </>
+        ) : (
+          <section className={`rounded-2xl p-8 ${verdict.tone}`} style={{ animation: 'rise-in 0.5s ease both' }}>
             <p className="text-sm">评估结果</p>
-            <p className="mt-1 text-2xl font-bold">{verdict.level}</p>
+            <p className="mt-1 text-3xl font-bold">{verdict.level}</p>
             <p className="mt-1 text-sm">得分 {score} / {max}</p>
-            <ul className="mt-4 list-disc space-y-1 pl-5 text-sm leading-6">
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/50">
+              <div
+                className="h-full rounded-full bg-current opacity-60 transition-all duration-1000"
+                style={{ width: `${(score / max) * 100}%` }}
+              />
+            </div>
+            <ul className="mt-5 list-disc space-y-1.5 pl-5 text-sm leading-6">
               {verdict.advice.map((a) => (
                 <li key={a}>{a}</li>
               ))}
             </ul>
-            <a
-              className="btn-primary mt-5"
-              href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('能力评估结果与购买指引')}&body=${mailBody}`}
-            >
-              将结果发送至邮箱获取购买指引
-            </a>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                className="btn-primary"
+                href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('能力评估结果与购买指引')}&body=${mailBody}`}
+              >
+                发送结果获取购买指引
+              </a>
+              <button className="btn-outline" onClick={() => { setSubmitted(false); setAnswers({}); setIdx(0); }}>
+                重新评估
+              </button>
+            </div>
           </section>
         )}
       </div>

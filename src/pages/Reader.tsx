@@ -15,6 +15,17 @@ export default function Reader() {
   const { profile, loading } = useAuth();
   const [data, setData] = useState<Issue | null | undefined>(undefined);
   const [owned, setOwned] = useState(false);
+  const [readProgress, setReadProgress] = useState(0);
+  const [focus, setFocus] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const h = document.documentElement;
+      setReadProgress(Math.min(100, (h.scrollTop / (h.scrollHeight - h.clientHeight || 1)) * 100));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -71,7 +82,8 @@ export default function Reader() {
   }
 
   return (
-    <div className="container-x max-w-3xl py-10">
+    <div className={`container-x py-10 transition-all duration-500 ${focus ? 'max-w-2xl' : 'max-w-3xl'}`}>
+      <div className="fixed left-0 top-16 z-40 h-1 bg-gradient-to-r from-brand-500 to-accent-500 transition-[width] duration-150" style={{ width: `${readProgress}%` }} />
       <nav className="mb-6 text-sm text-slate-500">
         <Link to={`/product/${product.slug}`} className="hover:text-brand-600">{product.title}</Link>
         <span className="mx-2">/</span>
@@ -83,7 +95,12 @@ export default function Reader() {
           <Link to={`/product/${product.slug}`} className="font-medium text-accent-600 hover:underline">立即开通</Link>
         </div>
       )}
-      <article className="card p-6 sm:p-10">
+      <div className="mb-4 flex justify-end">
+        <button className="btn-ghost !text-xs" onClick={() => setFocus(!focus)}>
+          {focus ? '退出专注模式' : '专注模式'}
+        </button>
+      </div>
+      <article className="card p-6 sm:p-10" style={{ animation: 'rise-in 0.5s ease both' }}>
         <header className="mb-6 border-b border-slate-100 pb-5">
           <h1 className="text-2xl font-bold text-brand-950">{data.title}</h1>
           <p className="mt-2 text-xs text-slate-400">
