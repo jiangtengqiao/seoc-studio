@@ -134,7 +134,7 @@ export function LoginPage() {
 }
 
 export function RegisterPage() {
-  const { register, mode } = useAuth();
+  const { register, login: loginAfterRegister, mode } = useAuth();
   const nav = useNavigate();
   const [step, setStep] = useState<1 | 2>(1);
   const [nickname, setNickname] = useState('');
@@ -178,12 +178,12 @@ export function RegisterPage() {
     if (code.length !== 6) return setErr('请输入 6 位验证码');
     setErr(null);
     setBusy(true);
-    const vErr = await callFn('verify-code', { email, code, purpose: 'register' });
-    if (vErr) {
+    const rErr = await callFn('register-user', { email, code, password, nickname: nickname.trim() });
+    if (rErr) {
       setBusy(false);
-      return setErr(vErr);
+      return setErr(rErr);
     }
-    const msg = await register(email, password, nickname.trim());
+    const msg = await loginAfterRegister(email, password);
     setBusy(false);
     if (msg) return setErr(msg);
     nav('/account');
