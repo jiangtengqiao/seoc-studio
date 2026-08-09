@@ -1,0 +1,211 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #2554eb;
+  --brand-dark: #172154;
+  --accent: #f59e0b;
+  --ink: #0f172a;
+  --paper: #f8fafc;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  font-feature-settings: 'ss01';
+}
+
+@layer components {
+  .container-x { @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800; }
+  .btn-outline { @apply btn border border-brand-200 bg-white text-brand-700 hover:border-brand-400 hover:bg-brand-50; }
+  .btn-ghost { @apply btn text-slate-600 hover:bg-slate-100; }
+  .card { @apply rounded-2xl border border-slate-200 bg-white shadow-card; }
+  .input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100; }
+  .label { @apply mb-1 block text-sm font-medium text-slate-700; }
+  .badge { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium; }
+  .prose-seoc { @apply text-[15px] leading-7 text-slate-800; }
+  .prose-seoc h1 { @apply mb-4 mt-8 text-2xl font-bold text-brand-950; }
+  .prose-seoc h2 { @apply mb-3 mt-8 border-l-4 border-brand-500 pl-3 text-xl font-bold text-brand-950; }
+  .prose-seoc h3 { @apply mb-2 mt-6 text-lg font-semibold text-slate-900; }
+  .prose-seoc p { @apply my-3; }
+  .prose-seoc ul { @apply my-3 list-disc pl-6; }
+  .prose-seoc ol { @apply my-3 list-decimal pl-6; }
+  .prose-seoc li { @apply my-1; }
+  .prose-seoc code { @apply rounded bg-brand-50 px-1.5 py-0.5 font-mono text-[13px] text-brand-700; }
+  .prose-seoc pre { @apply my-4 overflow-x-auto rounded-xl bg-brand-950 p-4 text-sm text-slate-100; }
+  .prose-seoc pre code { @apply bg-transparent p-0 text-inherit; }
+  .prose-seoc blockquote { @apply my-4 rounded-r-lg border-l-4 border-accent-500 bg-amber-50 px-4 py-2 text-slate-700; }
+  .prose-seoc table { @apply my-4 w-full border-collapse text-sm; }
+  .prose-seoc th { @apply border border-slate-300 bg-brand-50 px-3 py-2 text-left font-semibold; }
+  .prose-seoc td { @apply border border-slate-300 px-3 py-2; }
+  .prose-seoc a { @apply text-brand-600 underline hover:text-brand-800; }
+  .prose-seoc img { @apply my-4 rounded-xl; }
+}
+
+.gradient-hero {
+  background:
+    radial-gradient(1200px 500px at 80% -10%, rgba(59, 110, 246, 0.18), transparent),
+    radial-gradient(800px 400px at 10% 10%, rgba(245, 158, 11, 0.10), transparent),
+    linear-gradient(180deg, #ffffff 0%, #eef4ff 100%);
+}
+
+.mark-r {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  background: linear-gradient(135deg, #3b6ef6, #1d42d8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ============ SEOC FX v2 ============ */
+
+@keyframes mesh-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.08); }
+  66% { transform: translate(-30px, 20px) scale(0.95); }
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes caret-blink {
+  0%, 45% { opacity: 1; }
+  50%, 95% { opacity: 0; }
+}
+
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes code-line {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.mesh-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  animation: mesh-drift 14s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.float-slow { animation: float-y 6s ease-in-out infinite; }
+.float-slower { animation: float-y 8s ease-in-out infinite 1.2s; }
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.caret::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  background: currentColor;
+  vertical-align: -0.12em;
+  animation: caret-blink 1.1s steps(1) infinite;
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-x 30s linear infinite;
+}
+.marquee-track:hover { animation-play-state: paused; }
+
+.tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  will-change: transform;
+}
+
+.spotlight {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(320px circle at var(--mx, 50%) var(--my, 50%), rgba(59, 110, 246, 0.10), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.spotlight:hover::before { opacity: 1; }
+
+.code-window {
+  background: #0f1b3d;
+  border: 1px solid rgba(147, 180, 253, 0.25);
+  box-shadow: 0 30px 60px -20px rgba(23, 33, 84, 0.45);
+}
+.code-window pre { overflow: hidden; white-space: pre-wrap; }
+
+.tok-k { color: #93b4fd; }
+.tok-s { color: #fbbf24; }
+.tok-f { color: #6ee7b7; }
+.tok-c { color: #64748b; }
+.tok-n { color: #f9a8d4; }
+
+.progress-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3b6ef6, #f59e0b);
+  z-index: 60;
+  transition: width 0.1s linear;
+}
+
+.faq-item > div {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s ease;
+}
+.faq-item.open > div { grid-template-rows: 1fr; }
+.faq-item > div > div { overflow: hidden; }
+
+.gate-blur {
+  filter: blur(6px);
+  user-select: none;
+  pointer-events: none;
+}
+
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1.5px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  transition: background-size 0.3s ease;
+}
+.link-underline:hover { background-size: 100% 1.5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { transition: none; opacity: 1; transform: none; }
+  .mesh-orb, .float-slow, .float-slower, .marquee-track { animation: none; }
+}
