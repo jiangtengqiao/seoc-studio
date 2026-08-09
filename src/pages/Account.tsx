@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { fetchMaterials, fetchPurchases } from '../lib/content';
-import { getProduct } from '../data/products';
+import { getProduct, purchaseTitle } from '../data/products';
 import { CONTACT_EMAIL, type Material, type Purchase } from '../lib/types';
 import { PageHeader, Spinner } from '../components/ui';
 import { fetchMyInquiries, type Inquiry } from '../lib/inquiries';
@@ -93,9 +93,13 @@ export default function Account() {
                 return (
                   <li key={p.id} className="rounded-xl border border-slate-200 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium text-slate-900">{prod?.title || p.product_slug}</p>
+                      <p className="font-medium text-slate-900">{purchaseTitle(p.product_slug)}</p>
                       <div className="flex gap-2">
-                        {prod && <Link className="btn-outline !py-1 !text-xs" to={`/product/${prod.slug}`}>进入阅读</Link>}
+                        {prod ? (
+                          <Link className="btn-outline !py-1 !text-xs" to={`/product/${prod.slug}`}>进入阅读</Link>
+                        ) : (
+                          <Link className="btn-outline !py-1 !text-xs" to="/products/exploration">查看总包内容</Link>
+                        )}
                       </div>
                     </div>
                     {ms.length > 0 && (
@@ -120,7 +124,7 @@ export default function Account() {
               <ul className="space-y-2 text-sm">
                 {pending.map((p) => (
                   <li key={p.id} className="flex justify-between rounded-lg bg-amber-50 px-3 py-2 text-amber-900">
-                    <span>{getProduct(p.product_slug)?.title || p.product_slug}</span>
+                    <span>{purchaseTitle(p.product_slug)}</span>
                     <span>人工确认中</span>
                   </li>
                 ))}

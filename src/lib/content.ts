@@ -1,4 +1,5 @@
 import { isCloudEnabled, supabase } from './supabase';
+import { EXPLORATION_BUNDLE_SLUG, getProduct } from '../data/products';
 import type { Announcement, Issue, Material, Purchase } from './types';
 
 const legalModules = import.meta.glob('../content/legal/*.md', { eager: true, query: '?raw', import: 'default' });
@@ -112,7 +113,7 @@ export const LOCAL_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'a2',
     title: '关于购买流程的说明',
-    body: '本站数字内容采用人工确认制。选购后请通过邮箱 jiangtengqiao@qq.com 联系开通，本站不进行任何促销优惠活动。',
+    body: '本站数字内容采用人工确认制。登录后可在产品页打开购买面板，使用支付宝收款码支付并提交付款信息。核对通过后自动开通，本站不进行任何促销优惠活动。',
     pinned: false,
     published_at: '2026-08-09T00:00:00Z'
   }
@@ -132,7 +133,7 @@ export async function fetchPurchases(userId: string): Promise<Purchase[]> {
       .from('purchases')
       .select('*')
       .eq('user_id', userId)
-      .eq('status', 'confirmed');
+      .order('created_at', { ascending: false });
     if (data) return data as Purchase[];
   }
   try {
@@ -143,5 +144,9 @@ export async function fetchPurchases(userId: string): Promise<Purchase[]> {
 }
 
 export function hasAccess(purchases: Purchase[], slug: string): boolean {
-  return purchases.some((p) => p.product_slug === slug && p.status === 'confirmed');
+  return purchases.some((p) => {
+    if (p.status !== 'confirmed') return false;
+    if (p.product_slug === slug) return true;
+    return p.product_slug === EXPLORATION_BUNDLE_SLUG && getProduct(slug)?.category === 'exploration';
+  });
 }

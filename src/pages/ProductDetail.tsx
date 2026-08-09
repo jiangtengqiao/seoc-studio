@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getProduct } from '../data/products';
+import { EXPLORATION_BUNDLE_SLUG, getProduct } from '../data/products';
 import { fetchMaterials, fetchPurchases, hasAccess, listLocalIssues } from '../lib/content';
 import { useAuth } from '../lib/auth';
 import { CATEGORY_META, CONTACT_EMAIL, type Material, type Purchase } from '../lib/types';
 import { EmptyState, PageHeader, PriceTag } from '../components/ui';
 import { LensGate } from '../components/fx';
 import { submitInquiry } from '../lib/inquiries';
+import PurchasePanel from '../components/PurchasePanel';
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -15,6 +16,7 @@ export default function ProductDetail() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [showConsult, setShowConsult] = useState(false);
+  const [showBuy, setShowBuy] = useState(false);
   const [consultMsg, setConsultMsg] = useState('');
   const [consultState, setConsultState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
 
@@ -34,6 +36,12 @@ export default function ProductDetail() {
 
   const meta = CATEGORY_META[product.category];
   const owned = hasAccess(purchases, product.slug);
+  const purchasePending = purchases.some(
+    (p) =>
+      p.status === 'pending' &&
+      (p.product_slug === product.slug ||
+        (p.product_slug === EXPLORATION_BUNDLE_SLUG && product.category === 'exploration'))
+  );
   const published = listLocalIssues(product.slug);
   const firstIssue = published[0] || null;
   const previewOf = (no: number) => Boolean(profile) && no === 1;
@@ -158,14 +166,59 @@ export default function ProductDetail() {
                 </li>
               ))}
             </ul>
-            {profile ? (
-              <button className="btn-primary mt-6 w-full" onClick={() => setShowConsult(!showConsult)}>
-                {showConsult ? '收起咨询表单' : '申请选购 / 咨询客服'}
-              </button>
+            {profile ? owned ? (
+              <div className="mt-6 space-y-2">
+                <Link to={firstIssue ? `/reader/${product.slug}/${firstIssue.issue_no}` : '/account'} className="btn-primary w-full">
+                  已开通，立即阅读
+                </Link>
+                <button
+                  className="btn-outline w-full"
+                  onClick={() => {
+                    setShowConsult(!showConsult);
+                    setShowBuy(false);
+                  }}
+                >
+                  {showConsult ? '收起咨询表单' : '咨询客服 / 售后服务'}
+                </button>
+              </div>
+            ) : purchasePending ? (
+              <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+                您的付款信息已提交，正在人工核对。确认后无需重新下单，内容会自动开通。
+              </div>
+            ) : (
+              <div className="mt-6 space-y-2">
+                <button
+                  className="btn-primary w-full"
+                  onClick={() => {
+                    setShowBuy(!showBuy);
+                    setShowConsult(false);
+                  }}
+                >
+                  {showBuy ? '收起购买面板' : '立即购买'}
+                </button>
+                <button
+                  className="btn-outline w-full"
+                  onClick={() => {
+                    setShowConsult(!showConsult);
+                    setShowBuy(false);
+                  }}
+                >
+                  {showConsult ? '收起咨询表单' : '咨询客服 / 购买建议'}
+                </button>
+              </div>
             ) : (
               <Link to={`/auth/login?next=${encodeURIComponent(`/product/${product.slug}`)}`} className="btn-primary mt-6 w-full">
-                登录后选购
+                登录后购买
               </Link>
+            )}
+            {profile && !owned && !purchasePending && showBuy && (
+              <PurchasePanel
+                slug={product.slug}
+                title={product.title}
+                price={product.price}
+                unit={product.unit}
+                onDone={() => profile && fetchPurchases(profile.id).then(setPurchases)}
+              />
             )}
             {profile && showConsult && (
               <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50/50 p-4" style={{ animation: 'rise-in 0.3s ease both' }}>

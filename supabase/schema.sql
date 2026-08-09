@@ -91,7 +91,12 @@ create policy "profiles admin write" on profiles for all using (is_admin());
 create policy "issues read published" on issues for select using (
   is_admin() or exists (
     select 1 from purchases p
-    where p.user_id = auth.uid() and p.product_slug = issues.product_slug and p.status = 'confirmed'
+    where p.user_id = auth.uid()
+      and p.status = 'confirmed'
+      and (
+        p.product_slug = issues.product_slug
+        or (p.product_slug = 'exploration-bundle' and issues.product_slug like 'exp-python-%')
+      )
   )
 );
 create policy "issues admin write" on issues for all using (is_admin());
@@ -99,7 +104,12 @@ create policy "issues admin write" on issues for all using (is_admin());
 create policy "materials read owned" on materials for select using (
   is_admin() or exists (
     select 1 from purchases p
-    where p.user_id = auth.uid() and p.product_slug = materials.product_slug and p.status = 'confirmed'
+    where p.user_id = auth.uid()
+      and p.status = 'confirmed'
+      and (
+        p.product_slug = materials.product_slug
+        or (p.product_slug = 'exploration-bundle' and materials.product_slug like 'exp-python-%')
+      )
   )
 );
 create policy "materials admin write" on materials for all using (is_admin());

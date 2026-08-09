@@ -1,12 +1,21 @@
 import { useParams } from 'react-router-dom';
-import { byCategory, EXPLORATION_BUNDLE_PRICE, EXPLORATION_MIN_ITEMS } from '../data/products';
+import {
+  byCategory,
+  EXPLORATION_BUNDLE_ORIGINAL,
+  EXPLORATION_BUNDLE_PRICE,
+  EXPLORATION_BUNDLE_SLUG,
+  EXPLORATION_BUNDLE_TITLE,
+  EXPLORATION_MIN_ITEMS
+} from '../data/products';
 import { CATEGORY_META, CONTACT_EMAIL, type Category } from '../lib/types';
 import { PageHeader, ProductCard } from '../components/ui';
 import { Link } from 'react-router-dom';
-import { fetchAnnouncements } from '../lib/content';
+import { fetchAnnouncements, fetchPurchases, hasAccess } from '../lib/content';
 import { useEffect, useState } from 'react';
-import type { Announcement } from '../lib/types';
+import type { Announcement, Purchase } from '../lib/types';
 import { EmptyState } from '../components/ui';
+import PurchasePanel from '../components/PurchasePanel';
+import { useAuth } from '../lib/auth';
 
 export function CategoryPage({ category }: { category: Category }) {
   const meta = CATEGORY_META[category];
@@ -27,6 +36,9 @@ export function CategoryPage({ category }: { category: Category }) {
             </ul>
           </div>
         )}
+        {category === 'exploration' && (
+          <ExplorationBundleCard />
+        )}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((p) => (
             <ProductCard key={p.slug} product={p} />
@@ -38,6 +50,68 @@ export function CategoryPage({ category }: { category: Category }) {
         </p>
       </div>
     </div>
+  );
+}
+
+function ExplorationBundleCard() {
+  const { profile } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+
+  useEffect(() => {
+    if (profile) fetchPurchases(profile.id).then(setPurchases);
+  }, [profile]);
+
+  const owned = hasAccess(purchases, EXPLORATION_BUNDLE_SLUG);
+  const pending = purchases.some((p) => p.product_slug === EXPLORATION_BUNDLE_SLUG && p.status === 'pending');
+
+  return (
+    <section className="card mb-8 overflow-hidden border-brand-200 bg-gradient-to-r from-brand-950 to-brand-800 p-6 text-white">
+      <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div>
+          <p className="font-mono text-xs tracking-widest text-accent-300">OFFICIAL ONLY</p>
+          <h2 className="mt-2 text-xl font-bold">{EXPLORATION_BUNDLE_TITLE}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-brand-100">
+            一次开通探索式全部 8 个子项目，共 32 期正文与后续补丁。单独购入合计
+            {EXPLORATION_BUNDLE_ORIGINAL} 元，官网总包价 {EXPLORATION_BUNDLE_PRICE} 元，约省 12%。
+            开通后可任选一个学术交流群。
+          </p>
+        </div>
+        <div className="min-w-52 rounded-xl bg-white/10 p-4 ring-1 ring-white/15">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-white"><span className="text-sm">¥</span>{EXPLORATION_BUNDLE_PRICE}</span>
+            <span className="text-xs text-brand-200">总期刊包</span>
+          </div>
+          <p className="mt-1 text-xs text-brand-200 line-through">单独购入合计 ¥{EXPLORATION_BUNDLE_ORIGINAL}</p>
+          {profile ? (
+            owned ? (
+              <p className="mt-3 rounded-lg bg-emerald-400/15 px-3 py-2 text-center text-sm text-emerald-200">已开通全部探索式内容</p>
+            ) : pending ? (
+              <p className="mt-3 rounded-lg bg-amber-400/15 px-3 py-2 text-center text-sm text-amber-100">付款核对中，请等待开通</p>
+            ) : (
+              <button className="btn mt-3 w-full bg-white text-brand-800 hover:bg-brand-50" onClick={() => setOpen(!open)}>
+                {open ? '收起总包购买' : '购买总期刊包'}
+              </button>
+            )
+          ) : (
+            <Link to={`/auth/login?next=${encodeURIComponent('/products/exploration')}`} className="btn mt-3 w-full bg-white text-brand-800 hover:bg-brand-50">
+              登录后购买总包
+            </Link>
+          )}
+        </div>
+      </div>
+      {profile && open && !owned && !pending && (
+        <div className="mt-5 max-w-xl text-slate-900">
+          <PurchasePanel
+            slug={EXPLORATION_BUNDLE_SLUG}
+            title={EXPLORATION_BUNDLE_TITLE}
+            price={EXPLORATION_BUNDLE_PRICE}
+            unit="总期刊包"
+            onDone={() => profile && fetchPurchases(profile.id).then(setPurchases)}
+          />
+        </div>
+      )}
+    </section>
   );
 }
 

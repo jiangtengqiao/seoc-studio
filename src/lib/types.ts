@@ -86,13 +86,13 @@ export const CATEGORY_META: Record<Category, { name: string; nameEn: string; ton
   specialized: {
     name: '专研式项目',
     nameEn: 'Specialized Series',
-    tone: '分期交付，每期正文不少于 5000 汉字，持续维护但不持续更新',
+    tone: '分期交付，每期正文不少于 10000 汉字，持续维护但不持续更新',
     path: '/products/specialized'
   },
   exploration: {
     name: '探索式项目',
     nameEn: 'Exploration Journals',
-    tone: '高阶学者向，初学者慎入，含 QQ 群与微信群学术交流',
+    tone: '高阶学者向，初学者慎入，每期 8000 至 15000 汉字，含学术交流群',
     path: '/products/exploration'
   }
 };

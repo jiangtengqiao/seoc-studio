@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
 import { isCloudEnabled, supabase } from '../lib/supabase';
-import { PRODUCTS } from '../data/products';
+import { getProduct, minimumWords, PRODUCTS, purchaseTitle } from '../data/products';
 import { PageHeader, Spinner } from '../components/ui';
 import { fetchAllInquiries, replyInquiry, type Inquiry } from '../lib/inquiries';
 
@@ -15,7 +15,7 @@ export default function Admin() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
 
-  const [pending, setPending] = useState<{ id: string; email: string; product_slug: string; created_at: string }[]>([]);
+  const [pending, setPending] = useState<{ id: string; email: string; product_slug: string; note: string | null; created_at: string }[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
 
@@ -29,13 +29,14 @@ export default function Admin() {
     if (tab === 'purchase' && isCloudEnabled && supabase && profile?.role === 'admin') {
       supabase
         .from('purchases')
-        .select('id, product_slug, created_at, profiles(email)')
+        .select('id, product_slug, note, created_at, profiles(email)')
         .eq('status', 'pending')
         .then(({ data }) => {
           setPending(
             (data || []).map((r: Record<string, unknown>) => ({
               id: r.id as string,
               product_slug: r.product_slug as string,
+              note: (r.note as string | null) || null,
               created_at: r.created_at as string,
               email: ((r.profiles as { email?: string } | null)?.email) || ''
             }))
@@ -61,6 +62,12 @@ export default function Admin() {
       return;
     }
     const words = body.replace(/\s/g, '').length;
+    const product = getProduct(slug);
+    const requiredWords = product ? minimumWords(product) : 8000;
+    if (words < requiredWords) {
+      setMsg(`正文当前约 ${words} 字，低于本项目承诺的 ${requiredWords} 字下限。请补足细节后再发布。`);
+      return;
+    }
     const { error } = await supabase.from('issues').upsert(
       {
         product_slug: slug,
@@ -228,7 +235,8 @@ export default function Admin() {
                   <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 text-sm">
                     <div>
                       <p className="font-medium text-slate-900">{p.email}</p>
-                      <p className="text-slate-500">{p.product_slug} · {new Date(p.created_at).toLocaleString('zh-CN')}</p>
+                      <p className="text-slate-500">{purchaseTitle(p.product_slug)} · {new Date(p.created_at).toLocaleString('zh-CN')}</p>
+                      {p.note && <p className="mt-1 max-w-xl text-xs leading-5 text-slate-400">付款信息：{p.note}</p>}
                     </div>
                     <div className="flex gap-2">
                       <button className="btn-primary !py-1 !text-xs" onClick={() => confirmPurchase(p.id, true)}>确认开通</button>

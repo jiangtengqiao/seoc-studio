@@ -332,7 +332,7 @@ export default function Home() {
               </li>
               <li className="flex gap-3">
                 <span className="mt-0.5 font-mono text-accent-400">02</span>
-                字数写进规则。专研式每期不少于 5000 汉字，探索式各子项目的字数区间全部公示。
+                字数写进规则。专研式每期不少于 10000 汉字，探索式每期 8000 至 15000 汉字，承诺全部公示。
               </li>
               <li className="flex gap-3">
                 <span className="mt-0.5 font-mono text-accent-400">03</span>

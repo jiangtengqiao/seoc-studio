@@ -73,7 +73,7 @@ function emailHtml(code: string, purpose: string): string {
         </tr>
         <tr>
           <td style="padding:8px 10px;background:#f7f9fe;border-radius:0 0 0 8px;">探索式项目</td>
-          <td style="padding:8px 10px;background:#f7f9fe;border-radius:0 0 8px 0;">高阶学者向专题期刊，含学术交流群，总包 1313 元</td>
+          <td style="padding:8px 10px;background:#f7f9fe;border-radius:0 0 8px 0;">高阶学者向专题期刊，含学术交流群，总包 1159 元</td>
         </tr>
       </table>
       <div style="text-align:center;margin-top:14px;">
