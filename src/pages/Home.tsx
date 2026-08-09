@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { fetchAnnouncements } from '../lib/content';
 import { CATEGORY_META, CONTACT_EMAIL, type Announcement, type Category } from '../lib/types';
 import { byCategory, EXPLORATION_BUNDLE_PRICE, PRODUCTS } from '../data/products';
+import { BENEFIT_TIERS } from '../data/benefits';
 import {
   Counter,
   FAQ,
@@ -45,7 +46,7 @@ const PATH_STEPS = [
   {
     stage: '第一步',
     title: '免费能力评估',
-    body: '六道题，两分钟。评估结果会告诉你处在起步、进阶还是高阶阶段，并给出对应的购买指引。评估完全免费，这是探索式项目的硬性前置。'
+    body: '二十四道题，六大维度。评估结果会告诉你处在起步、进阶还是高阶阶段，并给出对应的购买指引。每日免费 2 次、每月免费 15 次，不提供付费加量。'
   },
   {
     stage: '第二步',
@@ -54,13 +55,13 @@ const PATH_STEPS = [
   },
   {
     stage: '第三步',
-    title: '邮件确认开通',
-    body: '通过官方邮箱提交选购意向，人工核验后开通。我们不接第三方支付、不做促销，价格以官网公示为唯一标准。'
+    title: '站内支付与人工确认',
+    body: '登录后打开购买面板，任选支付宝或微信收款码完成支付，再提交付款信息。人工核验通过后自动开通，价格以官网公示为唯一标准。'
   },
   {
     stage: '第四步',
     title: '长期研读与答疑',
-    body: '订阅式永久查阅并持续更新；专研式与探索式读者可进入学术交流群。所有异议均可投送电子邮件，我们书面回复。'
+    body: '订阅式永久查阅并持续更新；专研式与探索式读者可进入学术交流群。累计确认金额达到档位后，可获得学习档案、路径诊断、工程资料包与项目复盘。'
   }
 ];
 
@@ -298,6 +299,66 @@ export default function Home() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* 累计支持回馈 */}
+      <section className="container-x py-16">
+        <Reveal>
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-xs tracking-widest text-brand-500">READER BENEFITS</p>
+              <h2 className="mt-2 text-2xl font-bold text-brand-950">累计支持回馈，全部是实质交付</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                回馈按已确认开通金额累计，不给空头衔。每一档都对应可下载资料或可提交的真实服务。
+              </p>
+            </div>
+            <Link to="/account" className="link-underline text-sm text-brand-600">查看我的回馈</Link>
+          </div>
+        </Reveal>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {BENEFIT_TIERS.map((tier, i) => (
+            <Reveal key={tier.name} delay={i * 100}>
+              <div className="card flex h-full flex-col p-5">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-slate-900">{tier.name}</p>
+                  <span className="badge bg-brand-50 text-brand-700">¥{tier.threshold}</span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{tier.summary}</p>
+                <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">{tier.deliverable}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* 累计支持回馈 */}
+      <section className="container-x py-16">
+        <Reveal>
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-xs tracking-widest text-brand-500">READER BENEFITS</p>
+              <h2 className="mt-2 text-2xl font-bold text-brand-950">累计支持回馈，全部是实质交付</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                回馈按已确认开通金额累计，不给空头衔。每一档都对应可下载资料或可提交的真实服务。
+              </p>
+            </div>
+            <Link to="/account" className="link-underline text-sm text-brand-600">查看我的回馈</Link>
+          </div>
+        </Reveal>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {BENEFIT_TIERS.map((tier, i) => (
+            <Reveal key={tier.name} delay={i * 100}>
+              <div className="card flex h-full flex-col p-5">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-slate-900">{tier.name}</p>
+                  <span className="badge bg-brand-50 text-brand-700">¥{tier.threshold}</span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{tier.summary}</p>
+                <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">{tier.deliverable}</p>
+              </div>
+            </Reveal>
+          ))}
         </div>
       </section>
 

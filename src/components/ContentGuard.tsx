@@ -2,18 +2,19 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAuth } from '../lib/auth';
 
 /* ContentGuard：正文版权防护层
- * 防护手段：
- * 1. PrintScreen 键侦测：立即黑屏并清空剪贴板
- * 2. 窗口失焦侦测：切到截图工具、录屏软件、其他应用时立即黑屏，回焦自动恢复
- * 3. 页面隐藏（visibilitychange）侦测：黑屏
- * 4. 禁用右键菜单、复制、剪切、拖选、Ctrl/Cmd+S、Ctrl/Cmd+P
- * 5. 全屏动态水印：平铺当前登录用户邮箱，截图外泄可溯源
+ * 防护策略：
+ * 1. 任意键盘操作立即黑屏，松开后自动恢复，覆盖截图、录屏、开发者工具与保存打印快捷键
+ * 2. 窗口失焦、页面隐藏立即黑屏，覆盖微信、QQ、系统截图工具与其他外部应用
+ * 3. PrintScreen 触发时清空剪贴板并写入版权提示
+ * 4. 禁用右键菜单、复制、剪切、保存、打印、查看源码
+ * 5. 双层持续移动水印，平铺登录邮箱与账户标识，截图外泄可追溯到账户
  */
 export default function ContentGuard({ children }: { children: ReactNode }) {
   const { profile } = useAuth();
   const [blocked, setBlocked] = useState(false);
   const [reason, setReason] = useState('');
   const guardRef = useRef<HTMLDivElement>(null);
+  const keyTimer = useRef<number | null>(null);
 
   const blackout = useCallback((why: string) => {
     setBlocked(true);
@@ -22,66 +23,112 @@ export default function ContentGuard({ children }: { children: ReactNode }) {
 
   const restore = useCallback(() => setBlocked(false), []);
 
+  const scheduleKeyRestore = useCallback((delay: number) => {
+    if (keyTimer.current !== null) window.clearTimeout(keyTimer.current);
+    keyTimer.current = window.setTimeout(() => {
+      setBlocked(false);
+      keyTimer.current = null;
+    }, delay);
+  }, []);
+
   useEffect(() => {
-    const onKeyDown = async (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
+    const guardKey = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const keyName = e.key === ' ' ? 'Space' : e.key;
+      blackout(`检测到键盘活动 ${keyName}`);
+
       if (e.key === 'PrintScreen') {
-        e.preventDefault();
-        blackout('检测到截屏按键');
-        try {
-          await navigator.clipboard.writeText('SEOC Studio 内容受版权保护，禁止截取传播。');
-        } catch {
-          /* 剪贴板不可用时忽略 */
-        }
-        setTimeout(restore, 3000);
+        navigator.clipboard
+          .writeText('SEOC Studio 内容受版权保护，禁止截取传播。')
+          .catch(() => undefined);
+        scheduleKeyRestore(2500);
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && ['s', 'p', 'u'].includes(key)) {
-        e.preventDefault();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['s', 'x'].includes(key)) {
-        blackout('检测到截图工具快捷键');
-        setTimeout(restore, 3000);
-      }
+      scheduleKeyRestore(e.type === 'keyup' ? 650 : 1400);
     };
-    const onBlur = () => blackout('页面已失焦，内容保护中');
-    const onFocus = () => restore();
+
+    const onBlur = () => blackout('检测到浏览器窗口失焦，外部应用行为已被隔离');
+    const onFocus = () => {
+      if (!document.hidden) restore();
+    };
     const onVis = () => {
-      if (document.hidden) blackout('页面已隐藏，内容保护中');
+      if (document.hidden) blackout('检测到页面隐藏或切换');
       else restore();
     };
+    const onMouseLeave = (e: MouseEvent) => {
+      if (!e.relatedTarget) blackout('检测到鼠标离开浏览器窗口');
+    };
+    const onMouseEnter = () => {
+      if (document.hasFocus() && !document.hidden) restore();
+    };
+    const onPrint = () => blackout('检测到打印或导出行为');
     const onMenu = (e: Event) => e.preventDefault();
     const onCopy = (e: ClipboardEvent) => e.preventDefault();
+    const focusWatch = window.setInterval(() => {
+      if (document.hidden || !document.hasFocus()) {
+        blackout('焦点巡检发现页面已离开前台');
+      }
+    }, 120);
 
-    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', guardKey, true);
+    window.addEventListener('keyup', guardKey, true);
+    window.addEventListener('keypress', guardKey, true);
+    document.addEventListener('keydown', guardKey, true);
+    document.addEventListener('keyup', guardKey, true);
+    document.addEventListener('keypress', guardKey, true);
     window.addEventListener('blur', onBlur);
     window.addEventListener('focus', onFocus);
+    window.addEventListener('beforeprint', onPrint);
     document.addEventListener('visibilitychange', onVis);
+    document.addEventListener('mouseleave', onMouseLeave);
+    document.addEventListener('mouseenter', onMouseEnter);
     const el = guardRef.current;
     el?.addEventListener('contextmenu', onMenu);
     el?.addEventListener('copy', onCopy);
     el?.addEventListener('cut', onCopy);
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
+      if (keyTimer.current !== null) window.clearTimeout(keyTimer.current);
+      window.clearInterval(focusWatch);
+      window.removeEventListener('keydown', guardKey, true);
+      window.removeEventListener('keyup', guardKey, true);
+      window.removeEventListener('keypress', guardKey, true);
+      document.removeEventListener('keydown', guardKey, true);
+      document.removeEventListener('keyup', guardKey, true);
+      document.removeEventListener('keypress', guardKey, true);
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('beforeprint', onPrint);
       document.removeEventListener('visibilitychange', onVis);
+      document.removeEventListener('mouseleave', onMouseLeave);
+      document.removeEventListener('mouseenter', onMouseEnter);
       el?.removeEventListener('contextmenu', onMenu);
       el?.removeEventListener('copy', onCopy);
       el?.removeEventListener('cut', onCopy);
     };
-  }, [blackout, restore]);
+  }, [blackout, restore, scheduleKeyRestore]);
 
-  const watermarkText = profile ? `${profile.email} · SEOC Studio` : 'SEOC Studio';
-  const tiles = Array.from({ length: 24 }, (_, i) => i);
+  const watermarkText = profile
+    ? `${profile.email} · ${profile.id.slice(0, 8)} · SEOC Studio`
+    : 'SEOC Studio 版权保护';
+  const tiles = Array.from({ length: 72 }, (_, i) => i);
 
   return (
     <div ref={guardRef} className="relative select-none">
-      {/* 动态水印层 */}
       <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden" aria-hidden>
-        <div className="absolute -inset-1/2 grid grid-cols-4 gap-y-16 opacity-[0.05]" style={{ transform: 'rotate(-18deg)' }}>
+        <div className="watermark-drift absolute -inset-1/2 grid grid-cols-6 gap-x-10 gap-y-20 opacity-[0.075]">
           {tiles.map((i) => (
-            <span key={i} className="whitespace-nowrap font-mono text-sm text-slate-900">
+            <span key={i} className="whitespace-nowrap font-mono text-[15px] font-medium text-slate-900">
+              {watermarkText}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden" aria-hidden>
+        <div className="watermark-drift-reverse absolute -inset-1/2 grid grid-cols-4 gap-x-16 gap-y-24 opacity-[0.045]">
+          {tiles.slice(0, 48).map((i) => (
+            <span key={i} className="whitespace-nowrap font-mono text-lg font-semibold text-brand-900">
               {watermarkText}
             </span>
           ))}
@@ -90,7 +137,6 @@ export default function ContentGuard({ children }: { children: ReactNode }) {
 
       <div className={blocked ? 'gate-blur' : ''}>{children}</div>
 
-      {/* 黑屏遮罩 */}
       {blocked && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-brand-950/97 text-center" role="alert">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#93b4fd" strokeWidth="1.6">
@@ -100,7 +146,7 @@ export default function ContentGuard({ children }: { children: ReactNode }) {
           <p className="text-base font-semibold text-white">内容保护已触发</p>
           <p className="max-w-sm text-sm leading-6 text-brand-300">
             {reason}。本平台全部内容版权归编程研究与探索有限公司所有，任何形式的截取、录屏与传播均属侵权。
-            回到本页面后内容将自动恢复。
+            异常行动结束后内容将自动恢复。
           </p>
           <p className="font-mono text-xs text-brand-400">{watermarkText}</p>
         </div>

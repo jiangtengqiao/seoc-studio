@@ -20,6 +20,27 @@ interface Attempt {
 }
 
 const DIMS = Object.keys(DIMENSION_LABELS) as BankQ['dim'][];
+const DAILY_FREE_LIMIT = 2;
+const MONTHLY_FREE_LIMIT = 15;
+
+function quotaOf(history: Attempt[]) {
+  const now = new Date();
+  const dailyUsed = history.filter((h) => {
+    const d = new Date(h.date);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  }).length;
+  const monthlyUsed = history.filter((h) => {
+    const d = new Date(h.date);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+  return {
+    dailyUsed,
+    monthlyUsed,
+    dailyLeft: Math.max(0, DAILY_FREE_LIMIT - dailyUsed),
+    monthlyLeft: Math.max(0, MONTHLY_FREE_LIMIT - monthlyUsed),
+    canStart: dailyUsed < DAILY_FREE_LIMIT && monthlyUsed < MONTHLY_FREE_LIMIT
+  };
+}
 
 function drawQuestions(n: number): DrawnQ[] {
   const perDim = Math.floor(n / DIMS.length);
@@ -159,9 +180,39 @@ export default function Assessment() {
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [history, setHistory] = useState<Attempt[]>([]);
   const [histLoading, setHistLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
-  const start = () => {
+  useEffect(() => {
+    if (!profile) {
+      setHistory([]);
+      setHistoryLoaded(false);
+      return;
+    }
+    setHistLoading(true);
+    loadAttempts(profile.id).then((records) => {
+      setHistory(records);
+      setHistoryLoaded(true);
+      setHistLoading(false);
+    });
+  }, [profile]);
+
+  const quota = useMemo(() => quotaOf(history), [history]);
+
+  const start = async () => {
+    if (!profile) {
+      nav('/auth/login?next=' + encodeURIComponent('/assessment'));
+      return;
+    }
+    let records = history;
+    if (!historyLoaded) {
+      setHistLoading(true);
+      records = await loadAttempts(profile.id);
+      setHistory(records);
+      setHistoryLoaded(true);
+      setHistLoading(false);
+    }
+    if (!quotaOf(records).canStart) return;
     const drawn = drawQuestions(ASSESSMENT_LENGTH);
     setQs(drawn);
     setPicked(Array(drawn.length).fill(null));
@@ -184,7 +235,12 @@ export default function Assessment() {
     const a: Attempt = { date: new Date().toISOString(), total, max: qs.length, perDim, detail };
     setAttempt(a);
     setView('result');
-    if (profile) await saveAttempt(profile.id, a);
+    if (profile) {
+      await saveAttempt(profile.id, a);
+      const records = await loadAttempts(profile.id);
+      setHistory(records);
+      setHistoryLoaded(true);
+    }
   };
 
   const openHistory = async () => {
@@ -194,6 +250,7 @@ export default function Assessment() {
     }
     setHistLoading(true);
     setHistory(await loadAttempts(profile.id));
+    setHistoryLoaded(true);
     setHistLoading(false);
     setView('history');
   };
@@ -212,7 +269,7 @@ export default function Assessment() {
     <div>
       <PageHeader
         title="能力评估中心"
-        sub={`动态题库随机抽取 ${ASSESSMENT_LENGTH} 题，覆盖六大维度，每次题目与选项顺序均不同。购买探索式项目前须完成评估。`}
+        sub={`动态题库随机抽取 ${ASSESSMENT_LENGTH} 题，覆盖六大维度。每日免费 ${DAILY_FREE_LIMIT} 次，每月免费 ${MONTHLY_FREE_LIMIT} 次，不提供付费加量。购买探索式项目前须完成评估。`}
       />
       <div className="container-x max-w-2xl py-10">
         {view === 'intro' && (
@@ -223,8 +280,29 @@ export default function Assessment() {
                 系统将从题库中按维度与难度分层抽取 {ASSESSMENT_LENGTH} 道单选题，答题后生成六维能力雷达图，
                 历史评估与答题详情永久留存在您的账户中，每次登录均可回看。
               </p>
-              <button className="btn-primary mt-6 !px-8 !py-3" onClick={start}>开始评估</button>
-              <p className="mt-3 text-xs text-slate-400">评估免费，结果仅用于购买指引</p>
+              <div className="mx-auto mt-5 grid max-w-md grid-cols-2 gap-3 text-left">
+                <div className="rounded-xl bg-brand-50 p-4">
+                  <p className="text-xs text-slate-500">今日免费额度</p>
+                  <p className="mt-1 text-lg font-bold text-brand-800">{quota.dailyLeft} / {DAILY_FREE_LIMIT}</p>
+                  <p className="mt-1 text-[11px] text-slate-400">已使用 {quota.dailyUsed} 次</p>
+                </div>
+                <div className="rounded-xl bg-brand-50 p-4">
+                  <p className="text-xs text-slate-500">本月免费额度</p>
+                  <p className="mt-1 text-lg font-bold text-brand-800">{quota.monthlyLeft} / {MONTHLY_FREE_LIMIT}</p>
+                  <p className="mt-1 text-[11px] text-slate-400">已使用 {quota.monthlyUsed} 次</p>
+                </div>
+              </div>
+              <button className="btn-primary mt-6 !px-8 !py-3" onClick={start} disabled={histLoading || Boolean(profile && !quota.canStart)}>
+                {!profile ? '登录后开始评估' : quota.canStart ? '开始评估' : '免费额度已用完'}
+              </button>
+              <p className="mt-3 text-xs leading-5 text-slate-400">
+                评估完全免费，每日 {DAILY_FREE_LIMIT} 次、每月 {MONTHLY_FREE_LIMIT} 次。平台不提供付费加量或额外购买评估次数。
+              </p>
+              {profile && !quota.canStart && (
+                <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                  请等待明日或下月额度恢复。历史评估与答题详情仍可随时查看。
+                </p>
+              )}
             </div>
             <button className="btn-outline w-full" onClick={openHistory}>
               {profile ? '查看我的历史评估' : '登录后查看历史评估'}
@@ -305,7 +383,9 @@ export default function Assessment() {
                 <a className="btn-primary" href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('能力评估结果与购买指引')}&body=${mailBody}`}>
                   发送结果获取购买指引
                 </a>
-                <button className="btn-outline" onClick={start}>再测一次</button>
+                <button className="btn-outline" onClick={start} disabled={!quota.canStart}>
+                  {quota.canStart ? '再测一次' : '免费额度已用完'}
+                </button>
                 <button className="btn-ghost" onClick={openHistory}>历史记录</button>
               </div>
               {!profile && (
@@ -341,7 +421,9 @@ export default function Assessment() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-brand-950">历史评估</h2>
-              <button className="btn-primary !py-2" onClick={start}>开始新评估</button>
+              <button className="btn-primary !py-2" onClick={start} disabled={!quota.canStart}>
+                {quota.canStart ? '开始新评估' : '免费额度已用完'}
+              </button>
             </div>
             {histLoading ? (
               <Spinner />

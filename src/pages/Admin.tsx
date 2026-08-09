@@ -179,7 +179,7 @@ export default function Admin() {
                     <p className="text-sm font-medium text-slate-900">
                       {q.email}
                       <span className="ml-2 badge bg-brand-50 text-brand-700">
-                        {q.kind === 'purchase' ? '选购申请' : q.kind === 'consult' ? '购买咨询' : '问题'}
+                        {q.kind === 'purchase' ? '选购申请' : q.kind === 'consult' ? '购买咨询' : q.message.startsWith('[累计回馈') ? '累计回馈' : '问题'}
                       </span>
                       {q.product_slug && <span className="ml-2 badge bg-slate-100 text-slate-600">{q.product_slug}</span>}
                     </p>

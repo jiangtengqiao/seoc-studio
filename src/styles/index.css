@@ -209,3 +209,30 @@ body {
   .reveal { transition: none; opacity: 1; transform: none; }
   .mesh-orb, .float-slow, .float-slower, .marquee-track { animation: none; }
 }
+
+/* 双层动态溯源水印 */
+@keyframes watermark-drift {
+  0% { transform: rotate(-18deg) translate3d(-4%, -3%, 0); }
+  50% { transform: rotate(-18deg) translate3d(3%, 2%, 0); }
+  100% { transform: rotate(-18deg) translate3d(-4%, -3%, 0); }
+}
+
+@keyframes watermark-drift-reverse {
+  0% { transform: rotate(14deg) translate3d(4%, 3%, 0); }
+  50% { transform: rotate(14deg) translate3d(-3%, -2%, 0); }
+  100% { transform: rotate(14deg) translate3d(4%, 3%, 0); }
+}
+
+.watermark-drift {
+  animation: watermark-drift 26s ease-in-out infinite;
+  will-change: transform;
+}
+
+.watermark-drift-reverse {
+  animation: watermark-drift-reverse 34s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .watermark-drift, .watermark-drift-reverse { animation: none; }
+}

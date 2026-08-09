@@ -6,6 +6,7 @@ import { getProduct, purchaseTitle } from '../data/products';
 import { CONTACT_EMAIL, type Material, type Purchase } from '../lib/types';
 import { PageHeader, Spinner } from '../components/ui';
 import { fetchMyInquiries, type Inquiry } from '../lib/inquiries';
+import BenefitsPanel from '../components/BenefitsPanel';
 
 export default function Account() {
   const { profile, loading } = useAuth();
@@ -158,6 +159,7 @@ export default function Account() {
             </ul>
           )}
         </section>
+        {purchases !== null && <BenefitsPanel purchases={purchases} />}
       </div>
     </div>
   );

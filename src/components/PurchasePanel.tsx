@@ -3,7 +3,20 @@ import { isCloudEnabled, supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { PriceTag } from './ui';
 
-const QR_URL = `${import.meta.env.BASE_URL}pay/alipay.png`;
+const PAYMENT_METHODS = {
+  alipay: {
+    label: '支付宝',
+    qr: `${import.meta.env.BASE_URL}pay/alipay.png`,
+    hint: '推荐使用支付宝扫码支付'
+  },
+  wechat: {
+    label: '微信支付',
+    qr: `${import.meta.env.BASE_URL}pay/wechatpay.png`,
+    hint: '推荐使用微信扫码支付'
+  }
+} as const;
+
+type PaymentMethod = keyof typeof PAYMENT_METHODS;
 
 export function bundleDisplay(slug: string): string {
   return slug === 'exploration-bundle' ? '探索式项目总期刊包（全部 8 个子项目）' : slug;
@@ -57,6 +70,7 @@ export default function PurchasePanel({
   onDone?: () => void;
 }) {
   const { profile } = useAuth();
+  const [method, setMethod] = useState<PaymentMethod>('alipay');
   const [payer, setPayer] = useState('');
   const [note, setNote] = useState('');
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
@@ -69,7 +83,7 @@ export default function PurchasePanel({
     const err = await createPurchase({
       userId: profile.id,
       productSlug: slug,
-      note: `付款人支付宝：${payer.trim()}${note.trim() ? '；备注：' + note.trim() : ''}`
+      note: `支付方式：${PAYMENT_METHODS[method].label}；付款人：${payer.trim()}${note.trim() ? '；备注：' + note.trim() : ''}`
     });
     setState(err ? 'error' : 'done');
     if (!err && onDone) onDone();
@@ -95,9 +109,26 @@ export default function PurchasePanel({
       </div>
 
       <div className="mt-3 rounded-lg bg-brand-50 p-3 text-center">
-        <p className="mb-2 text-xs text-slate-500">第一步：支付宝扫码支付 ¥{price.toFixed(2)}</p>
-        <img src={QR_URL} alt="支付宝收款码" className="mx-auto w-44 rounded-lg border border-slate-200" />
+        <p className="mb-2 text-xs text-slate-500">第一步：选择支付方式并扫码支付 ¥{price.toFixed(2)}</p>
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          {(Object.keys(PAYMENT_METHODS) as PaymentMethod[]).map((key) => (
+            <button
+              key={key}
+              type="button"
+              className={`rounded-lg border px-3 py-2 text-sm transition ${
+                method === key
+                  ? 'border-brand-500 bg-white font-medium text-brand-700 shadow-sm'
+                  : 'border-slate-200 bg-white/60 text-slate-500 hover:border-brand-300'
+              }`}
+              onClick={() => setMethod(key)}
+            >
+              {PAYMENT_METHODS[key].label}
+            </button>
+          ))}
+        </div>
+        <img src={PAYMENT_METHODS[method].qr} alt={`${PAYMENT_METHODS[method].label}收款码`} className="mx-auto w-44 rounded-lg border border-slate-200 bg-white p-1" />
         <p className="mt-2 text-xs leading-5 text-slate-500">
+          {PAYMENT_METHODS[method].hint}<br />
           收款方：编程研究与探索（JTQ）<br />
           支付时请在备注中填写您的<strong className="text-brand-700">注册邮箱</strong>，以便核对
         </p>
@@ -107,7 +138,7 @@ export default function PurchasePanel({
         <p className="text-xs text-slate-500">第二步：提交付款信息，人工确认后立即开通</p>
         <input
           className="input !py-2 text-sm"
-          placeholder="您的支付宝账号或付款人姓名"
+          placeholder={`您的${PAYMENT_METHODS[method].label}账号或付款人姓名`}
           value={payer}
           onChange={(e) => setPayer(e.target.value)}
           required
