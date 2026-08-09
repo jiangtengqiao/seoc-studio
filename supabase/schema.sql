@@ -70,6 +70,20 @@ alter table assessments enable row level security;
 create or replace function is_admin() returns boolean language sql stable as
 $$ select exists (select 1 from profiles where id = auth.uid() and role = 'admin') $$;
 
+drop policy if exists "profiles self read" on profiles;
+drop policy if exists "profiles self update" on profiles;
+drop policy if exists "profiles admin write" on profiles;
+drop policy if exists "issues read published" on issues;
+drop policy if exists "issues admin write" on issues;
+drop policy if exists "materials read owned" on materials;
+drop policy if exists "materials admin write" on materials;
+drop policy if exists "purchases self read" on purchases;
+drop policy if exists "purchases self insert" on purchases;
+drop policy if exists "purchases admin write" on purchases;
+drop policy if exists "announcements public read" on announcements;
+drop policy if exists "announcements admin write" on announcements;
+drop policy if exists "assessments self" on assessments;
+
 create policy "profiles self read" on profiles for select using (auth.uid() = id or is_admin());
 create policy "profiles self update" on profiles for update using (auth.uid() = id);
 create policy "profiles admin write" on profiles for all using (is_admin());
