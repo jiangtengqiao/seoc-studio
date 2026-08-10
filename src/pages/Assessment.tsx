@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PageHeader, Spinner } from '../components/ui';
 import { CONTACT_EMAIL } from '../lib/types';
 import { useAuth } from '../lib/auth';
+import { useI18n } from '../lib/i18n';
 import { isCloudEnabled, supabase } from '../lib/supabase';
 import { ASSESSMENT_LENGTH, DIMENSION_LABELS, QUESTION_BANK, type BankQ } from '../data/questionBank';
 
@@ -171,6 +172,7 @@ function RadarChart({ perDim, size = 260 }: { perDim: Attempt['perDim']; size?: 
 }
 
 export default function Assessment() {
+  const { t } = useI18n();
   const { profile, loading } = useAuth();
   const nav = useNavigate();
   const [view, setView] = useState<'intro' | 'quiz' | 'result' | 'history'>('intro');
@@ -293,7 +295,7 @@ export default function Assessment() {
                 </div>
               </div>
               <button className="btn-primary mt-6 !px-8 !py-3" onClick={start} disabled={histLoading || Boolean(profile && !quota.canStart)}>
-                {!profile ? '登录后开始评估' : quota.canStart ? '开始评估' : '免费额度已用完'}
+                {!profile ? t('common.loginFirst') : quota.canStart ? t('assess.start') : '免费额度已用完'}
               </button>
               <p className="mt-3 text-xs leading-5 text-slate-400">
                 评估完全免费，每日 {DAILY_FREE_LIMIT} 次、每月 {MONTHLY_FREE_LIMIT} 次。平台不提供付费加量或额外购买评估次数。
@@ -386,7 +388,7 @@ export default function Assessment() {
                 <button className="btn-outline" onClick={start} disabled={!quota.canStart}>
                   {quota.canStart ? '再测一次' : '免费额度已用完'}
                 </button>
-                <button className="btn-ghost" onClick={openHistory}>历史记录</button>
+                <button className="btn-ghost" onClick={openHistory}>{t('assess.history')}</button>
               </div>
               {!profile && (
                 <p className="mt-4 text-xs text-amber-600">

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { EXPLORATION_BUNDLE_SLUG, getProduct } from '../data/products';
 import { fetchMaterials, fetchPurchases, hasAccess, listLocalIssues } from '../lib/content';
 import { useAuth } from '../lib/auth';
+import { useI18n } from '../lib/i18n';
 import { CATEGORY_META, CONTACT_EMAIL, type Material, type Purchase } from '../lib/types';
 import { EmptyState, PageHeader, PriceTag } from '../components/ui';
 import { LensGate } from '../components/fx';
@@ -10,6 +11,7 @@ import { submitInquiry } from '../lib/inquiries';
 import PurchasePanel from '../components/PurchasePanel';
 
 export default function ProductDetail() {
+  const { t } = useI18n();
   const { slug } = useParams();
   const product = slug ? getProduct(slug) : undefined;
   const { profile } = useAuth();
@@ -169,7 +171,7 @@ export default function ProductDetail() {
             {profile ? owned ? (
               <div className="mt-6 space-y-2">
                 <Link to={firstIssue ? `/reader/${product.slug}/${firstIssue.issue_no}` : '/account'} className="btn-primary w-full">
-                  已开通，立即阅读
+                  {t('detail.owned')}，立即阅读
                 </Link>
                 <button
                   className="btn-outline w-full"
@@ -194,7 +196,7 @@ export default function ProductDetail() {
                     setShowConsult(false);
                   }}
                 >
-                  {showBuy ? '收起购买面板' : '立即购买'}
+                  {showBuy ? '收起购买面板' : t('detail.buyNow')}
                 </button>
                 <button
                   className="btn-outline w-full"

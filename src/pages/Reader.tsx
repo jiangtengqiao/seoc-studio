@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -10,6 +10,7 @@ import type { Issue } from '../lib/types';
 import { EmptyState, Spinner } from '../components/ui';
 import ContentGuard from '../components/ContentGuard';
 import { HighlightButton, MarksPanel, MilestoneToast, QuickQuiz, ReadingTimer, useHighlights } from '../components/ReaderPlay';
+import { extractToc, TocMobile, TocSidebar } from '../components/TocNav';
 
 export default function Reader() {
   const { slug, issue } = useParams();
@@ -22,6 +23,15 @@ export default function Reader() {
   const [readProgress, setReadProgress] = useState(0);
   const [focus, setFocus] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
+  const toc = useMemo(() => (data ? extractToc(data.content_md) : []), [data]);
+  const mdComponents = useMemo(() => {
+    let i = 0;
+    const makeId = () => `sec-${i++}`;
+    return {
+      h2: ({ children }: { children?: React.ReactNode }) => <h2 id={makeId()}>{children}</h2>,
+      h3: ({ children }: { children?: React.ReactNode }) => <h3 id={makeId()}>{children}</h3>
+    };
+  }, [data]);
   const { marks, btn, addMark, removeMark } = useHighlights(slug || '', issueNo, articleRef);
 
   useEffect(() => {
@@ -93,7 +103,7 @@ export default function Reader() {
   const nextPlan = issueNo < total ? product.toc[issueNo] : undefined;
 
   return (
-    <div className={`container-x py-10 transition-all duration-500 ${focus ? 'max-w-2xl' : 'max-w-3xl'}`}>
+    <div className={`container-x py-10 transition-all duration-500 ${focus ? 'max-w-2xl' : 'max-w-5xl'}`}>
       <div className="fixed left-0 top-16 z-40 h-1 bg-gradient-to-r from-brand-500 to-accent-500 transition-[width] duration-150" style={{ width: `${readProgress}%` }} />
       <MilestoneToast progress={readProgress} />
       <HighlightButton btn={btn} onAdd={addMark} />
@@ -119,6 +129,9 @@ export default function Reader() {
         </button>
       </div>
 
+      <TocMobile toc={toc} />
+      <div className="flex items-start gap-8">
+        <div className="min-w-0 flex-1">
       <ContentGuard>
         <article ref={articleRef} className="card p-6 sm:p-10" style={{ animation: 'rise-in 0.5s ease both' }}>
           <header className="mb-6 border-b border-slate-100 pb-5">
@@ -128,7 +141,9 @@ export default function Reader() {
             </p>
           </header>
           <div className="prose-seoc">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.content_md}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+              {data.content_md}
+            </ReactMarkdown>
           </div>
           {data.patches.length > 0 && (
             <section className="mt-10 rounded-xl border border-accent-400/40 bg-amber-50 p-5">
@@ -145,6 +160,9 @@ export default function Reader() {
           )}
         </article>
       </ContentGuard>
+        </div>
+        <TocSidebar toc={toc} />
+      </div>
 
       <MarksPanel marks={marks} onRemove={removeMark} />
 

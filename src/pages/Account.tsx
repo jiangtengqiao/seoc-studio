@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { useI18n } from '../lib/i18n';
 import { fetchMaterials, fetchPurchases } from '../lib/content';
 import { getProduct, purchaseTitle } from '../data/products';
 import { CONTACT_EMAIL, type Material, type Purchase } from '../lib/types';
@@ -9,6 +10,7 @@ import { fetchMyInquiries, type Inquiry } from '../lib/inquiries';
 import BenefitsPanel from '../components/BenefitsPanel';
 
 export default function Account() {
+  const { t } = useI18n();
   const { profile, loading } = useAuth();
   const nav = useNavigate();
   const [purchases, setPurchases] = useState<Purchase[] | null>(null);
@@ -39,7 +41,7 @@ export default function Account() {
 
   return (
     <div>
-      <PageHeader title="用户中心" sub={`账户邮箱：${profile.email}`} />
+      <PageHeader title={t('account.title')} sub={`账户邮箱：${profile.email}`} />
       <div className="container-x grid gap-6 py-10 lg:grid-cols-3">
         <section className="card p-6">
           <h2 className="mb-4 text-base font-semibold text-slate-900">账户信息</h2>
@@ -121,7 +123,7 @@ export default function Account() {
 
           {pending.length > 0 && (
             <>
-              <h3 className="mb-3 mt-8 text-sm font-semibold text-slate-900">待确认的选购申请</h3>
+              <h3 className="mb-3 mt-8 text-sm font-semibold text-slate-900">{t('account.pending')}</h3>
               <ul className="space-y-2 text-sm">
                 {pending.map((p) => (
                   <li key={p.id} className="flex justify-between rounded-lg bg-amber-50 px-3 py-2 text-amber-900">

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { useI18n } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
 import { FieldError } from '../components/ui';
 
@@ -91,6 +92,7 @@ function ResendLink({ onSend, cooldownKey }: { onSend: () => Promise<string | nu
 }
 
 export function LoginPage() {
+  const { t } = useI18n();
   const { login } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
@@ -115,18 +117,18 @@ export function LoginPage() {
     <AuthShell title="登录" sub="欢迎回到 SEOC Studio。">
       <form onSubmit={submit} className="space-y-4" noValidate>
         <div>
-          <label className="label" htmlFor="email">邮箱</label>
+          <label className="label" htmlFor="email">{t('auth.email')}</label>
           <input id="email" className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
         </div>
         <div>
-          <label className="label" htmlFor="pwd">密码</label>
+          <label className="label" htmlFor="pwd">{t('auth.password')}</label>
           <input id="pwd" className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
         </div>
         <FieldError msg={err} />
         <button className="btn-primary w-full" disabled={busy}>{busy ? '登录中' : '登录'}</button>
       </form>
       <div className="mt-4 flex justify-between text-sm">
-        <Link className="text-brand-600 hover:underline" to="/auth/reset">忘记密码</Link>
+        <Link className="text-brand-600 hover:underline" to="/auth/reset">{t('auth.forgot')}</Link>
         <Link className="text-brand-600 hover:underline" to="/auth/register">注册新账户</Link>
       </div>
     </AuthShell>
@@ -134,6 +136,7 @@ export function LoginPage() {
 }
 
 export function RegisterPage() {
+  const { t } = useI18n();
   const { register, login: loginAfterRegister, mode } = useAuth();
   const nav = useNavigate();
   const [step, setStep] = useState<1 | 2>(1);
@@ -201,25 +204,25 @@ export function RegisterPage() {
             <input id="nick" className="input" value={nickname} onChange={(e) => setNickname(e.target.value)} />
           </div>
           <div>
-            <label className="label" htmlFor="email">邮箱</label>
+            <label className="label" htmlFor="email">{t('auth.email')}</label>
             <input id="email" className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
           </div>
           <div>
-            <label className="label" htmlFor="pwd">密码</label>
+            <label className="label" htmlFor="pwd">{t('auth.password')}</label>
             <input id="pwd" className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
           </div>
           <div>
-            <label className="label" htmlFor="pwd2">确认密码</label>
+            <label className="label" htmlFor="pwd2">{t('auth.password')}</label>
             <input id="pwd2" className="input" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
           </div>
           <FieldError msg={err} />
-          <button className="btn-primary w-full" disabled={busy}>{busy ? '处理中' : cloud ? '发送验证码' : '注册'}</button>
+          <button className="btn-primary w-full" disabled={busy}>{busy ? '处理中' : cloud ? t('auth.sendCode') : t('auth.register')}</button>
           <p className="text-center text-xs text-slate-400">注册即表示同意《用户服务协议》与《隐私政策》</p>
         </form>
       ) : (
         <form onSubmit={stepTwo} className="space-y-4" noValidate style={{ animation: 'rise-in 0.4s ease both' }}>
           <div>
-            <label className="label">邮件验证码</label>
+            <label className="label">{t('auth.code')}</label>
             <CodeInput value={code} onChange={setCode} />
           </div>
           <ResendLink onSend={sendCode} cooldownKey="seoc.cd.register" />
@@ -229,13 +232,14 @@ export function RegisterPage() {
         </form>
       )}
       <p className="mt-4 text-center text-sm">
-        已有账户？<Link className="text-brand-600 hover:underline" to="/auth/login">直接登录</Link>
+        {t('auth.hasAccount')}？<Link className="text-brand-600 hover:underline" to="/auth/login">直接登录</Link>
       </p>
     </AuthShell>
   );
 }
 
 export function ResetPage() {
+  const { t } = useI18n();
   const { resetPassword, mode } = useAuth();
   const nav = useNavigate();
   const [email, setEmail] = useState('');
@@ -307,7 +311,7 @@ export function ResetPage() {
           {cloud && (
             <>
               <div>
-                <label className="label">邮件验证码</label>
+                <label className="label">{t('auth.code')}</label>
                 <CodeInput value={code} onChange={setCode} />
               </div>
               <ResendLink onSend={sendCode} cooldownKey="seoc.cd.reset" />
