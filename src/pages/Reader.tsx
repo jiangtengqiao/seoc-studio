@@ -10,7 +10,7 @@ import type { Issue } from '../lib/types';
 import { EmptyState, Spinner } from '../components/ui';
 import ContentGuard from '../components/ContentGuard';
 import { HighlightButton, MarksPanel, MilestoneToast, QuickQuiz, ReadingTimer, useHighlights } from '../components/ReaderPlay';
-import { extractToc, TocMobile, TocSidebar } from '../components/TocNav';
+import { createHeadingComponents, extractToc, TocMobile, TocSidebar } from '../components/TocNav';
 
 export default function Reader() {
   const { slug, issue } = useParams();
@@ -24,14 +24,7 @@ export default function Reader() {
   const [focus, setFocus] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
   const toc = useMemo(() => (data ? extractToc(data.content_md) : []), [data]);
-  const mdComponents = useMemo(() => {
-    let i = 0;
-    const makeId = () => `sec-${i++}`;
-    return {
-      h2: ({ children }: { children?: React.ReactNode }) => <h2 id={makeId()}>{children}</h2>,
-      h3: ({ children }: { children?: React.ReactNode }) => <h3 id={makeId()}>{children}</h3>
-    };
-  }, [data]);
+  const mdComponents = useMemo(() => createHeadingComponents(toc), [toc]);
   const { marks, btn, addMark, removeMark } = useHighlights(slug || '', issueNo, articleRef);
 
   useEffect(() => {
