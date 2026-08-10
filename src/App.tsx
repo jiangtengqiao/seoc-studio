@@ -1,5 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './lib/auth';
+import { ThemeProvider } from './lib/theme';
+import { I18nProvider } from './lib/i18n';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import { AnnouncementsPage, CategoryPage, ProductsIndex } from './pages/Products';
@@ -26,8 +28,10 @@ function NotFound() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <ThemeProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Home />} />
@@ -58,7 +62,9 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+          </BrowserRouter>
+        </AuthProvider>
+      </I18nProvider>
+    </ThemeProvider>
   );
 }

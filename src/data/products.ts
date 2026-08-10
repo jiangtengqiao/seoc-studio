@@ -11,7 +11,7 @@ export const PRODUCTS: Product[] = [
     unit: '一次性购入，永久查阅',
     maintenance: '持续维护',
     updating: '持续更新',
-    wordsPerIssue: '每章正文不少于 8000 汉字',
+    wordsPerIssue: '每章正文不少于 22000 汉字',
     perks: ['永久查阅', '持续维护与更新', '研究脉络逐年补写'],
     materialsIncluded: false,
     lang: '中文',
@@ -36,7 +36,7 @@ export const PRODUCTS: Product[] = [
     unit: '一次性购入，永久查阅',
     maintenance: '持续维护',
     updating: '持续更新',
-    wordsPerIssue: '每章正文不少于 8000 汉字',
+    wordsPerIssue: '每章正文不少于 22000 汉字',
     perks: ['永久查阅', '持续维护与更新', '标准演进逐年补写'],
     materialsIncluded: false,
     lang: '中文',
@@ -61,7 +61,7 @@ export const PRODUCTS: Product[] = [
     unit: '一次性购入，永久查阅',
     maintenance: '持续维护',
     updating: '持续更新',
-    wordsPerIssue: '每章正文不少于 8000 汉字',
+    wordsPerIssue: '每章正文不少于 22000 汉字',
     perks: ['编辑器配置指导', '语法指导与详情', '工程实践与排错', '永久查阅'],
     materialsIncluded: false,
     lang: '中文',
@@ -88,7 +88,7 @@ export const PRODUCTS: Product[] = [
     unit: '一次性购入，永久查阅',
     maintenance: '持续维护',
     updating: '持续更新',
-    wordsPerIssue: '每章正文不少于 8000 汉字',
+    wordsPerIssue: '每章正文不少于 22000 汉字',
     perks: ['编辑器配置指导', '语法指导与详情', '构建系统与排错', '永久查阅'],
     materialsIncluded: false,
     lang: '中文',
@@ -114,7 +114,7 @@ export const PRODUCTS: Product[] = [
     price: 369,
     unit: '系列教程',
     issuesTotal: 10,
-    wordsPerIssue: '每期正文不少于 10000 汉字',
+    wordsPerIssue: '每期正文不少于 26000 汉字',
     maintenance: '持续维护',
     updating: '不持续更新',
     perks: ['中英双语', '附赠资料', '从零实现可训练模型', '异议请投送电子邮件'],
@@ -143,7 +143,7 @@ export const PRODUCTS: Product[] = [
     price: 169,
     unit: '系列教程',
     issuesTotal: 6,
-    wordsPerIssue: '每期正文不少于 10000 汉字',
+    wordsPerIssue: '每期正文不少于 26000 汉字',
     maintenance: '持续维护',
     updating: '不持续更新',
     perks: ['附赠资料', '出版级图表规范', '异议请投送电子邮件'],
@@ -177,7 +177,7 @@ export const PRODUCTS: Product[] = [
       price: lv.price,
       unit: '分级教程',
       issuesTotal: 4,
-      wordsPerIssue: '每期正文不少于 10000 汉字',
+      wordsPerIssue: '每期正文不少于 26000 汉字',
       maintenance: '持续维护',
       updating: '不持续更新',
       perks: lv.materials ? ['附赠资料', '异议请投送电子邮件'] : ['仅简单教程，不附赠资料', '异议请投送电子邮件'],
@@ -201,7 +201,7 @@ export const PRODUCTS: Product[] = [
     price: 339,
     unit: '尊享级项目',
     issuesTotal: 6,
-    wordsPerIssue: '每期正文不少于 10000 汉字',
+    wordsPerIssue: '每期正文不少于 26000 汉字',
     maintenance: '持续维护',
     updating: '不持续更新',
     perks: ['附赠资料', '较复杂项目', '引擎级架构讲解', '异议请投送电子邮件'],
@@ -235,7 +235,7 @@ export const PRODUCTS: Product[] = [
     price: p,
     unit: `${n} 期`,
     issuesTotal: n,
-    wordsPerIssue: i <= 4 ? '每期正文 8000 至 15000 汉字' : '每期正文 10000 至 15000 汉字，含补丁',
+    wordsPerIssue: i <= 4 ? '每期正文 22000 至 30000 汉字' : '每期正文 26000 至 30000 汉字，含补丁',
     maintenance: '持续维护',
     updating: '按期刊计划更新',
     perks: [
@@ -272,7 +272,7 @@ export function purchaseTitle(slug: string): string {
 }
 
 export function minimumWords(product: Product): number {
-  if (product.category === 'specialized') return 10000;
-  if (product.category === 'exploration') return product.index <= 4 ? 8000 : 10000;
-  return 8000;
+  if (product.category === 'specialized') return 26000;
+  if (product.category === 'exploration') return product.index <= 4 ? 22000 : 26000;
+  return 22000;
 }
