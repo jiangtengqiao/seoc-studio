@@ -129,3 +129,10 @@
 - i18n 覆盖扩大：词典新增 35 键×9 语言，接入 ProductDetail/Auth 三页/Assessment/Account
 - 提交 306f4cb 已上线，线上验证含 ON THIS PAGE 导航
 - 本地交付 v2：SEOC学习资料大纲与写作要求.md 重做——188 章/期（原102），全部按 起步篇→进阶篇→深入篇→探索篇 四段递进组织，每章 8 节+交付要求，单篇 40000-55000 字目标，115KB
+
+## v8 问卷中心 + 用户讨论区（2026-08-11）
+- 问卷中心 /surveys：内置45题调研问卷（Markdown 解析器转结构化），分节导航+实时进度+四题型+必答校验+防重复提交+只读答卷
+- 后台问卷管理：粘贴/上传 md/txt/docx(mammoth 懒加载) 解析下发，草稿/上下架/答卷数据
+- 讨论区 /forum：发帖+标签+评论+删除，RLS 公开读登录写
+- supabase/surveys-forum.sql 需在 SQL Editor 执行（surveys/survey_responses/forum_posts/forum_comments + survey_stats 视图）
+- 提交 2ef6365 已上线，线上 JS 标记验证通过
