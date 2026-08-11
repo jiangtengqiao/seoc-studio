@@ -4,10 +4,11 @@ import { isCloudEnabled, supabase } from '../lib/supabase';
 import { getProduct, minimumWords, PRODUCTS, purchaseTitle } from '../data/products';
 import { PageHeader, Spinner } from '../components/ui';
 import { fetchAllInquiries, replyInquiry, type Inquiry } from '../lib/inquiries';
+import SurveyAdmin from '../components/SurveyAdmin';
 
 export default function Admin() {
   const { profile, loading } = useAuth();
-  const [tab, setTab] = useState<'issue' | 'announcement' | 'purchase' | 'inquiry'>('issue');
+  const [tab, setTab] = useState<'issue' | 'announcement' | 'purchase' | 'inquiry' | 'survey'>('issue');
   const [msg, setMsg] = useState<string | null>(null);
 
   const [slug, setSlug] = useState(PRODUCTS[0].slug);
@@ -103,13 +104,14 @@ export default function Admin() {
   return (
     <div>
       <PageHeader title="管理端" sub="内容发布、公告维护与选购确认。" />
-      <div className="container-x max-w-4xl py-10">
+      <div className={tab === 'survey' ? 'container-x max-w-6xl py-10' : 'container-x max-w-4xl py-10'}>
         <div className="mb-6 flex gap-2">
           {([
             ['issue', '发布期刊'],
             ['announcement', '发布公告'],
             ['purchase', '选购确认'],
-            ['inquiry', '咨询与选购申请']
+            ['inquiry', '咨询与选购申请'],
+            ['survey', '问卷中心']
           ] as const).map(([k, label]) => (
             <button
               key={k}
@@ -222,6 +224,8 @@ export default function Admin() {
             )}
           </div>
         )}
+
+        {tab === 'survey' && <SurveyAdmin />}
 
         {tab === 'purchase' && (
           <div className="card p-6">

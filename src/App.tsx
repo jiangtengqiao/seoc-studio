@@ -13,6 +13,8 @@ import { LoginPage, RegisterPage, ResetPage } from './pages/Auth';
 import Account from './pages/Account';
 import Admin from './pages/Admin';
 import { CommunityPage, SearchPage } from './pages/Explore';
+import { SurveysPage, SurveyDetailPage } from './pages/Surveys';
+import { ForumPage, ForumPostPage } from './pages/Forum';
 import { Link } from 'react-router-dom';
 import { RequireAuth } from './components/AuthGate';
 
@@ -52,6 +54,10 @@ export default function App() {
             <Route path="announcements" element={<AnnouncementsPage />} />
             <Route path="search" element={<SearchPage />} />
             <Route path="community" element={<CommunityPage />} />
+          <Route path="surveys" element={<SurveysPage />} />
+          <Route path="surveys/:slug" element={<SurveyDetailPage />} />
+          <Route path="forum" element={<ForumPage />} />
+          <Route path="forum/:id" element={<ForumPostPage />} />
             <Route path="legal" element={<Legal />} />
             <Route path="legal/:doc" element={<Legal />} />
             <Route path="auth/login" element={<LoginPage />} />

@@ -12,6 +12,8 @@ const NAV_KEYS = [
   { to: '/products/specialized', key: 'nav.specialized' },
   { to: '/products/exploration', key: 'nav.exploration' },
   { to: '/assessment', key: 'nav.assessment' },
+  { to: '/surveys', key: 'nav.surveys' },
+  { to: '/forum', key: 'nav.forum' },
   { to: '/community', key: 'nav.community' },
   { to: '/announcements', key: 'nav.announcements' },
   { to: '/search', key: 'nav.search' }
@@ -258,6 +260,8 @@ export default function Layout() {
           <div>
             <p className="mb-3 text-sm font-semibold text-slate-800">{t('footer.features')}</p>
             <ul className="space-y-2 text-sm text-slate-500">
+              <li><Link className="hover:text-brand-600" to="/surveys">{t('nav.surveys')}</Link></li>
+              <li><Link className="hover:text-brand-600" to="/forum">{t('nav.forum')}</Link></li>
               <li><Link className="hover:text-brand-600" to="/community">{t('footer.community')}</Link></li>
               <li><Link className="hover:text-brand-600" to="/announcements">{t('footer.announcements')}</Link></li>
               <li><Link className="hover:text-brand-600" to="/search">{t('footer.search')}</Link></li>
