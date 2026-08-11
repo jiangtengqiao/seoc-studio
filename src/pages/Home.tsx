@@ -204,7 +204,13 @@ export default function Home() {
           </div>
           <Reveal delay={250} className="self-center">
             <TiltCard max={6}>
-              <HeroCodeWindow />
+              <div className="relative">
+                <div className="orbit-ring pointer-events-none absolute -inset-5 rounded-[1.8rem] border border-dashed border-brand-300/60" />
+                <span className="float-chip absolute -left-5 top-8 z-10 select-none rounded-lg bg-white/95 px-2.5 py-1 font-mono text-xs font-bold text-brand-600 shadow-lift">{'</>'}</span>
+                <span className="float-chip absolute -right-4 top-1/3 z-10 select-none rounded-lg bg-white/95 px-2.5 py-1 font-mono text-xs font-bold text-accent-600 shadow-lift" style={{ animationDelay: '-1.8s' }}>λ</span>
+                <span className="float-chip absolute -bottom-4 left-1/4 z-10 select-none rounded-lg bg-white/95 px-2.5 py-1 font-mono text-xs font-bold text-emerald-600 shadow-lift" style={{ animationDelay: '-3.2s' }}>{'{ }'}</span>
+                <HeroCodeWindow />
+              </div>
             </TiltCard>
           </Reveal>
         </div>

@@ -6,13 +6,11 @@ import { PriceTag } from './ui';
 const PAYMENT_METHODS = {
   alipay: {
     label: '支付宝',
-    qr: `${import.meta.env.BASE_URL}pay/alipay.png`,
-    hint: '推荐使用支付宝扫码支付'
+    qr: `${import.meta.env.BASE_URL}pay/alipay.png`
   },
   wechat: {
     label: '微信支付',
-    qr: `${import.meta.env.BASE_URL}pay/wechatpay.png`,
-    hint: '推荐使用微信扫码支付'
+    qr: `${import.meta.env.BASE_URL}pay/wechatpay.png`
   }
 } as const;
 
@@ -108,29 +106,48 @@ export default function PurchasePanel({
         <PriceTag price={price} unit={unit} />
       </div>
 
-      <div className="mt-3 rounded-lg bg-brand-50 p-3 text-center">
-        <p className="mb-2 text-xs text-slate-500">第一步：选择支付方式并扫码支付 ¥{price.toFixed(2)}</p>
-        <div className="mb-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 rounded-lg bg-brand-50 p-3">
+        <p className="mb-3 text-center text-xs text-slate-500">
+          第一步：任选一种方式扫码支付 ¥{price.toFixed(2)}，两个收款码同时展示无需切换
+        </p>
+        {/* 双码同屏展示，彻底消除切换与加载延迟 */}
+        <div className="grid grid-cols-2 gap-3">
           {(Object.keys(PAYMENT_METHODS) as PaymentMethod[]).map((key) => (
             <button
               key={key}
               type="button"
-              className={`rounded-lg border px-3 py-2 text-sm transition ${
-                method === key
-                  ? 'border-brand-500 bg-white font-medium text-brand-700 shadow-sm'
-                  : 'border-slate-200 bg-white/60 text-slate-500 hover:border-brand-300'
-              }`}
               onClick={() => setMethod(key)}
+              className={`group rounded-xl border-2 bg-white p-2.5 text-center transition ${
+                method === key
+                  ? 'border-brand-500 shadow-md'
+                  : 'border-slate-200 hover:border-brand-300'
+              }`}
             >
-              {PAYMENT_METHODS[key].label}
+              <img
+                src={PAYMENT_METHODS[key].qr}
+                alt={`${PAYMENT_METHODS[key].label}收款码`}
+                loading="eager"
+                className="mx-auto w-full max-w-40 rounded-lg border border-slate-100"
+              />
+              <p className={`mt-2 flex items-center justify-center gap-1.5 text-sm ${method === key ? 'font-semibold text-brand-700' : 'text-slate-600'}`}>
+                <span className={`flex h-4 w-4 items-center justify-center rounded-full border transition ${
+                  method === key ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300'
+                }`}>
+                  {method === key && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </span>
+                {PAYMENT_METHODS[key].label}
+              </p>
             </button>
           ))}
         </div>
-        <img src={PAYMENT_METHODS[method].qr} alt={`${PAYMENT_METHODS[method].label}收款码`} className="mx-auto w-44 rounded-lg border border-slate-200 bg-white p-1" />
-        <p className="mt-2 text-xs leading-5 text-slate-500">
-          {PAYMENT_METHODS[method].hint}<br />
+        <p className="mt-3 text-center text-xs leading-5 text-slate-500">
           收款方：编程研究与探索（JTQ）<br />
-          支付时请在备注中填写您的<strong className="text-brand-700">注册邮箱</strong>，以便核对
+          支付时请在备注中填写您的<strong className="text-brand-700">注册邮箱</strong>，以便核对；
+          点击收款码可标记您实际使用的方式
         </p>
       </div>
 

@@ -384,3 +384,29 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .aurora, .spin-slow, .pulse-dot, .float-chip, .scan-line, .lens-dash { animation: none; }
 }
+
+/* ===== v9.2 全站常驻动效 ===== */
+@keyframes flow-x {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+/* 导航栏下方的流动渐变光线，每页持续可见 */
+.header-flow {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #3b6ef6 20%, #f59e0b 42%, #10b981 62%, #8b5cf6 82%, transparent);
+  background-size: 200% 100%;
+  animation: flow-x 5s linear infinite;
+}
+/* 围绕代码窗口的轨道虚线环 */
+.orbit-ring { animation: spin-slow 26s linear infinite; }
+/* 导航面板顶部渐变条 */
+.panel-strip {
+  height: 3px;
+  background: linear-gradient(90deg, #3b6ef6, #8b5cf6, #f59e0b, #10b981, #3b6ef6);
+  background-size: 200% 100%;
+  animation: flow-x 8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .header-flow, .orbit-ring, .panel-strip { animation: none; }
+}
+
