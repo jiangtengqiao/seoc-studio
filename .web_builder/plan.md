@@ -136,3 +136,10 @@
 - 讨论区 /forum：发帖+标签+评论+删除，RLS 公开读登录写
 - supabase/surveys-forum.sql 需在 SQL Editor 执行（surveys/survey_responses/forum_posts/forum_comments + survey_stats 视图）
 - 提交 2ef6365 已上线，线上 JS 标记验证通过
+
+## v9/v9.1 导航折叠面板+常驻动效+探照灯修复（2026-08-11）
+- 导航：主项5个+「全部导航」mega menu（悬浮/点击箭头展开，4组15入口带图标chip+渐变流动顶条），移动端分组全量导航
+- 常驻动效：header-flow 流动渐变光线（全站）、hero 轨道虚线环+漂浮符号、Aurora 光斑、PulseDot、SiteUptime 实时秒表、BackToTop、Counter 数字滚动
+- 探照灯修复：错位根因=lens-dash 旋转动画覆盖 Tailwind translate；跟不上根因=位置插值。改为单一容器 transform（位移+缩放合一）、子元素零 transform、位置零延迟直跟
+- 支付面板：双收款码同屏展示，无切换延迟，点击标记使用方式
+- 提交 65ac03a 起已上线验证
