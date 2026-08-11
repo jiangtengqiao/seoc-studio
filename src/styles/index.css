@@ -321,3 +321,66 @@ body {
 .dark .shadow-lift { box-shadow: 0 12px 32px -12px rgba(37, 84, 235, 0.45); }
 
 .dark ::selection { background-color: rgba(59, 110, 246, 0.35); }
+
+/* ===== v9 常驻活动元素 ===== */
+@keyframes aurora-pan {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(6%, -5%) scale(1.18); }
+  66% { transform: translate(-5%, 6%) scale(0.92); }
+}
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  70% { box-shadow: 0 0 0 9px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@keyframes float-chip {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-10px) rotate(1.5deg); }
+}
+@keyframes menu-pop {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes scan-y {
+  0% { top: -10%; }
+  100% { top: 110%; }
+}
+
+.aurora {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  opacity: 0.5;
+  animation: aurora-pan 14s ease-in-out infinite;
+  pointer-events: none;
+}
+.spin-slow { animation: spin-slow 12s linear infinite; }
+.pulse-dot { animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.float-chip { animation: float-chip 5s ease-in-out infinite; }
+.menu-pop { animation: menu-pop 0.18s ease-out; }
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 22%;
+  background: linear-gradient(to bottom, transparent, rgba(147, 180, 253, 0.08), transparent);
+  animation: scan-y 4.5s linear infinite;
+  pointer-events: none;
+}
+
+
+/* 探照灯透镜光标 */
+.lens-cursor {
+  transition: opacity 0.3s ease;
+}
+.lens-dash {
+  animation: spin-slow 18s linear infinite;
+  transform-origin: center;
+}
+
+.dark .aurora { opacity: 0.3; }
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora, .spin-slow, .pulse-dot, .float-chip, .scan-line, .lens-dash { animation: none; }
+}

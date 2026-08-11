@@ -4,19 +4,59 @@ import { useAuth } from '../lib/auth';
 import { useTheme, type ThemeMode } from '../lib/theme';
 import { LANGS, useI18n } from '../lib/i18n';
 import { BRAND, COMPANY_CN, COMPANY_EN, CONTACT_EMAIL } from '../lib/types';
-import { ScrollProgress } from './fx';
+import { BackToTop, ScrollProgress, SiteUptime } from './fx';
 
-const NAV_KEYS = [
+/** 主导航常驻项 */
+const PRIMARY_NAV = [
   { to: '/', key: 'nav.home' },
   { to: '/products/subscription', key: 'nav.subscription' },
   { to: '/products/specialized', key: 'nav.specialized' },
   { to: '/products/exploration', key: 'nav.exploration' },
-  { to: '/assessment', key: 'nav.assessment' },
-  { to: '/surveys', key: 'nav.surveys' },
-  { to: '/forum', key: 'nav.forum' },
-  { to: '/community', key: 'nav.community' },
-  { to: '/announcements', key: 'nav.announcements' },
-  { to: '/search', key: 'nav.search' }
+  { to: '/assessment', key: 'nav.assessment' }
+];
+
+/** 「全部导航」折叠面板的分组快捷入口 */
+interface MegaItem {
+  to: string;
+  key: string;
+  desc: string;
+}
+const MEGA_GROUPS: { titleKey: string; items: MegaItem[] }[] = [
+  {
+    titleKey: 'nav.groupProducts',
+    items: [
+      { to: '/products', key: 'nav.products', desc: '三大门类完整目录与定价总览' },
+      { to: '/products/subscription', key: 'nav.subscription', desc: '语言起源与使用指南，永久查阅' },
+      { to: '/products/specialized', key: 'nav.specialized', desc: '项目驱动的分期系列教程' },
+      { to: '/products/exploration', key: 'nav.exploration', desc: '面向高阶学者的连载期刊' }
+    ]
+  },
+  {
+    titleKey: 'nav.groupLearn',
+    items: [
+      { to: '/assessment', key: 'nav.assessment', desc: '六维动态出题，每日免费 2 次' },
+      { to: '/surveys', key: 'nav.surveys', desc: '参与调研，驱动产品迭代方向' },
+      { to: '/forum', key: 'nav.forum', desc: '发帖交流，与同频学习者讨论' },
+      { to: '/search', key: 'nav.search', desc: '跨项目检索目录、公告与协议' }
+    ]
+  },
+  {
+    titleKey: 'nav.groupCommunity',
+    items: [
+      { to: '/community', key: 'nav.community', desc: 'QQ 与微信学术交流群' },
+      { to: '/announcements', key: 'nav.announcements', desc: '新期发布与维护安排公示' },
+      { to: '/legal', key: 'footer.legal', desc: '服务协议与隐私政策公开可查' },
+      { to: '/account', key: 'footer.benefits', desc: '累计消费回馈四档权益' }
+    ]
+  },
+  {
+    titleKey: 'nav.groupAccount',
+    items: [
+      { to: '/account', key: 'nav.account', desc: '已购内容、订单与评估历史' },
+      { to: '/auth/login', key: 'nav.login', desc: '已有账户直接登录' },
+      { to: '/auth/register', key: 'nav.register', desc: '注册后解锁试读与评估' }
+    ]
+  }
 ];
 
 function Logo() {
@@ -102,7 +142,7 @@ function LangMenu() {
         <span className="hidden text-xs lg:inline">{current.native}</span>
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lift">
+        <div className="menu-pop absolute right-0 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lift">
           {LANGS.map((l) => (
             <button
               key={l.code}
@@ -128,6 +168,86 @@ function LangMenu() {
   );
 }
 
+/** 「全部导航」折叠面板：悬浮或点击箭头展开分组快捷导航 */
+function MoreNav() {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const show = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(true);
+  };
+  const hide = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(false), 140);
+  };
+
+  return (
+    <div onMouseEnter={show} onMouseLeave={hide}>
+      <button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className={`flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
+          open ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100'
+        }`}
+      >
+        {t('nav.more')}
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          className={`transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          className="menu-pop fixed left-1/2 top-16 z-50 w-[min(46rem,94vw)] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-lift backdrop-blur"
+          onMouseEnter={show}
+          onMouseLeave={hide}
+        >
+          <div className="grid grid-cols-2 gap-x-6 gap-y-5 lg:grid-cols-4">
+            {MEGA_GROUPS.map((g) => (
+              <div key={g.titleKey}>
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <span className="h-1 w-1 rounded-full bg-brand-400" />
+                  {t(g.titleKey)}
+                </p>
+                <ul className="space-y-0.5">
+                  {g.items.map((it) => (
+                    <li key={it.to}>
+                      <NavLink
+                        to={it.to}
+                        onClick={() => setOpen(false)}
+                        className="group block rounded-lg px-2.5 py-2 transition hover:bg-brand-50"
+                      >
+                        <p className="flex items-center justify-between text-sm font-medium text-slate-800 group-hover:text-brand-700">
+                          {t(it.key)}
+                          <span className="text-brand-400 opacity-0 transition group-hover:opacity-100">→</span>
+                        </p>
+                        <p className="mt-0.5 text-xs leading-5 text-slate-400">{it.desc}</p>
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+            <SiteUptime />
+            <span className="text-xs text-slate-400">15 个快捷入口</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Layout() {
   const { profile, logout, mode } = useAuth();
   const { t } = useI18n();
@@ -136,14 +256,16 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollProgress />
+      <BackToTop />
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="container-x flex h-16 items-center justify-between gap-4">
           <Logo />
-          <nav className="hidden items-center gap-1 md:flex">
-            {NAV_KEYS.map((n) => (
+          <nav className="hidden items-center gap-1 lg:flex">
+            {PRIMARY_NAV.map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}
+                end={n.to === '/'}
                 className={({ isActive }) =>
                   `rounded-lg px-3 py-2 text-sm transition ${
                     isActive ? 'bg-brand-50 font-medium text-brand-700' : 'text-slate-600 hover:bg-slate-100'
@@ -153,8 +275,9 @@ export default function Layout() {
                 {t(n.key)}
               </NavLink>
             ))}
+            <MoreNav />
           </nav>
-          <div className="hidden items-center gap-1 md:flex">
+          <div className="hidden items-center gap-1 lg:flex">
             <LangMenu />
             <ThemeToggle />
             {mode === 'local' && <span className="badge bg-amber-50 text-amber-700">{t('nav.demo')}</span>}
@@ -174,7 +297,7 @@ export default function Layout() {
             )}
           </div>
           <button
-            className="rounded-lg p-2 hover:bg-slate-100 md:hidden"
+            className="rounded-lg p-2 hover:bg-slate-100 lg:hidden"
             onClick={() => setOpen(!open)}
             aria-label="菜单"
           >
@@ -184,19 +307,27 @@ export default function Layout() {
           </button>
         </div>
         {open && (
-          <div className="border-t border-slate-200 bg-white md:hidden">
-            <div className="container-x flex flex-col gap-1 py-3">
-              {NAV_KEYS.map((n) => (
-                <NavLink
-                  key={n.to}
-                  to={n.to}
-                  onClick={() => setOpen(false)}
-                  className={({ isActive }) =>
-                    `rounded-lg px-3 py-2.5 text-sm ${isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600'}`
-                  }
-                >
-                  {t(n.key)}
-                </NavLink>
+          <div className="border-t border-slate-200 bg-white lg:hidden">
+            <div className="container-x flex max-h-[70vh] flex-col gap-1 overflow-y-auto py-3">
+              {MEGA_GROUPS.map((g) => (
+                <div key={g.titleKey} className="mb-2">
+                  <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    {t(g.titleKey)}
+                  </p>
+                  {g.items.map((n) => (
+                    <NavLink
+                      key={n.to}
+                      to={n.to}
+                      onClick={() => setOpen(false)}
+                      className={({ isActive }) =>
+                        `block rounded-lg px-3 py-2.5 text-sm ${isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600'}`
+                      }
+                    >
+                      {t(n.key)}
+                      <span className="ml-2 text-xs text-slate-400">{n.desc}</span>
+                    </NavLink>
+                  ))}
+                </div>
               ))}
               <div className="mt-2 flex items-center gap-2">
                 <LangMenu />
@@ -246,6 +377,9 @@ export default function Layout() {
             </p>
             <p className="mt-2 text-xs leading-5 text-slate-400">
               凡与官网公示价格不一致的渠道均属假冒，欢迎通过官方邮箱举报，举报有奖。
+            </p>
+            <p className="mt-3">
+              <SiteUptime />
             </p>
           </div>
           <div>
