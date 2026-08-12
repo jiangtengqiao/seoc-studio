@@ -42,7 +42,8 @@ export interface StreamChunk {
 
 const PROVIDER_ENDPOINTS: Record<string, string> = {
   bytedance: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
-  alibaba: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+  // 千问：阿里云百炼专属网关地址（用户专属 MaaS 网关，非默认 dashscope 域名）
+  alibaba: 'https://ws-jiofwcml2nqy8gqe.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions',
   zhipu: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
   deepseek: 'https://api.deepseek.com/v1/chat/completions',
 };

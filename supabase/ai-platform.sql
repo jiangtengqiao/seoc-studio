@@ -174,7 +174,7 @@ create index if not exists idx_ai_api_keys_hash on ai_api_keys(key_hash);
 -- ============================================================
 insert into ai_models (id, provider, display_name, input_price, output_price, free_daily_quota, enabled, sort_order)
 values
-  ('doubao-pro', 'bytedance',
+  ('doubao-pro-32k', 'bytedance',
    '{"zh-CN":"豆包 Pro","en":"Doubao Pro","ja":"Doubao Pro","ko":"Doubao Pro","fr":"Doubao Pro","de":"Doubao Pro","es":"Doubao Pro","ru":"Doubao Pro","zh-TW":"豆包 Pro"}',
    4.000000, 12.000000, 5, true, 1),
   ('qwen-max', 'alibaba',
