@@ -8,6 +8,7 @@ import { CONTACT_EMAIL, type Material, type Purchase } from '../lib/types';
 import { PageHeader, Spinner } from '../components/ui';
 import { fetchMyInquiries, type Inquiry } from '../lib/inquiries';
 import BenefitsPanel from '../components/BenefitsPanel';
+import { getBalance, getUsageSummary, type AIBalance } from '../lib/ai';
 
 export default function Account() {
   const { t } = useI18n();
@@ -16,6 +17,8 @@ export default function Account() {
   const [purchases, setPurchases] = useState<Purchase[] | null>(null);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [materials, setMaterials] = useState<Record<string, Material[]>>({});
+  const [aiBalance, setAiBalance] = useState<AIBalance | null>(null);
+  const [aiSummary, setAiSummary] = useState<{ total_calls: number; total_cost: number; recent_models: string[] } | null>(null);
 
   useEffect(() => {
     if (!loading && !profile) nav('/auth/login');
@@ -32,6 +35,8 @@ export default function Account() {
       }
       setMaterials(map);
     });
+    getBalance().then(setAiBalance);
+    getUsageSummary().then(setAiSummary);
   }, [profile]);
 
   if (loading || !profile) return <Spinner />;
@@ -161,6 +166,51 @@ export default function Account() {
             </ul>
           )}
         </section>
+
+        {/* AI 使用统计卡片 */}
+        <section className="card p-6 lg:col-span-3">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-slate-900">AI 使用统计</h2>
+            <div className="flex gap-2">
+              <Link to="/ai" className="text-xs text-brand-600 hover:underline">使用研智助手</Link>
+              <span className="text-slate-300">|</span>
+              <Link to="/ai/credits" className="text-xs text-brand-600 hover:underline">管理研点</Link>
+              <span className="text-slate-300">|</span>
+              <Link to="/ai/api" className="text-xs text-brand-600 hover:underline">API 密钥</Link>
+            </div>
+          </div>
+          {aiBalance === null || aiSummary === null ? (
+            <Spinner />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-brand-50 to-white p-4">
+                <p className="text-xs text-slate-500">研点余额</p>
+                <p className="mt-1 text-2xl font-bold text-brand-700">{aiBalance.balance.toLocaleString()}</p>
+                {aiBalance.free_remaining > 0 && (
+                  <p className="mt-1 text-xs text-emerald-600">今日免费剩余：{aiBalance.free_remaining} 次</p>
+                )}
+              </div>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs text-slate-500">总调用次数</p>
+                <p className="mt-1 text-2xl font-bold text-slate-900">{aiSummary.total_calls}</p>
+                <p className="mt-1 text-xs text-slate-400">累计消耗 {aiSummary.total_cost.toFixed(2)} 研点</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-xs text-slate-500">最近使用模型</p>
+                {aiSummary.recent_models.length > 0 ? (
+                  <ul className="mt-2 space-y-1">
+                    {aiSummary.recent_models.slice(0, 3).map((model) => (
+                      <li key={model} className="text-sm text-slate-700">{model}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-400">暂无使用记录</p>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+
         {purchases !== null && <BenefitsPanel purchases={purchases} />}
       </div>
     </div>

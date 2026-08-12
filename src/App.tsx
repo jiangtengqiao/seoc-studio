@@ -15,6 +15,9 @@ import Admin from './pages/Admin';
 import { CommunityPage, SearchPage } from './pages/Explore';
 import { SurveysPage, SurveyDetailPage } from './pages/Surveys';
 import { ForumPage, ForumPostPage } from './pages/Forum';
+import AIChat from './pages/AIChat';
+import AICredits from './pages/AICredits';
+import AIApiKeys from './pages/AIApiKeys';
 import { Link } from 'react-router-dom';
 import { RequireAuth } from './components/AuthGate';
 
@@ -65,6 +68,9 @@ export default function App() {
             <Route path="auth/reset" element={<ResetPage />} />
             <Route path="account" element={<RequireAuth><Account /></RequireAuth>} />
             <Route path="admin" element={<RequireAuth reason="管理端仅限管理员账户访问。"><Admin /></RequireAuth>} />
+            <Route path="ai" element={<RequireAuth reason="研智助手仅对登录用户开放。"><AIChat /></RequireAuth>} />
+            <Route path="ai/credits" element={<RequireAuth><AICredits /></RequireAuth>} />
+            <Route path="ai/api" element={<RequireAuth><AIApiKeys /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

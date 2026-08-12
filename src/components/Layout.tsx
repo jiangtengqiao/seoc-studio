@@ -12,7 +12,8 @@ const PRIMARY_NAV = [
   { to: '/products/subscription', key: 'nav.subscription' },
   { to: '/products/specialized', key: 'nav.specialized' },
   { to: '/products/exploration', key: 'nav.exploration' },
-  { to: '/assessment', key: 'nav.assessment' }
+  { to: '/assessment', key: 'nav.assessment' },
+  { to: '/ai', key: 'nav.ai' }
 ];
 
 /** 「全部导航」折叠面板的分组快捷入口 */

@@ -122,7 +122,161 @@ const zhCN: Dict = {
   'common.back': '返回',
   'common.submit': '提交',
   'common.all': '全部',
-  'common.view': '查看'
+  'common.view': '查看',
+
+  'nav.ai': '研智助手',
+
+  'nav.groupAI': 'AI 平台',
+
+  'nav.aiCredits': '研点管理',
+
+  'nav.aiApi': 'API 平台',
+
+  'ai.chat.title': '研智助手',
+
+  'ai.chat.subtitle': 'SEOC Studio 智能编程助手',
+
+  'ai.chat.welcome': '你好，我是研智助手',
+
+  'ai.chat.welcomeDesc': '选择一个模型，输入你的编程问题，我会尽力为你解答。所有回复按研点计费，部分模型每日有免费额度。',
+
+  'ai.chat.placeholder': '输入你的问题，Shift+Enter 换行',
+
+  'ai.chat.send': '发送',
+
+  'ai.chat.model': '选择模型',
+
+  'ai.chat.balance': '研点余额',
+
+  'ai.chat.freeRemaining': '今日免费剩余',
+
+  'ai.chat.freeUsed': '免费',
+
+  'ai.chat.tokenCost': '本次消耗',
+
+  'ai.chat.interrupted': '余额不足，回复已中断',
+
+  'ai.chat.noBalance': '研点不足，无法发送',
+
+  'ai.chat.footerNote': '按 Enter 发送，Shift+Enter 换行。',
+
+  'ai.chat.suggest1': 'Python 装饰器怎么用？',
+
+  'ai.chat.suggest2': '解释一下 JavaScript 闭包',
+
+  'ai.chat.suggest3': '如何优化 SQL 查询性能？',
+
+  'ai.credits.title': '研点管理',
+
+  'ai.credits.subtitle': '管理你的研点余额、充值与使用明细',
+
+  'ai.credits.name': '研点',
+
+  'ai.credits.balance': '当前余额',
+
+  'ai.credits.perDay': '次 / 每日',
+
+  'ai.credits.totalSpent': '累计消耗',
+
+  'ai.credits.topup': '充值研点',
+
+  'ai.credits.selectPlan': '选择充值方案',
+
+  'ai.credits.topupNote': '充值后研点即时到账，数字商品一经支付概不退款。',
+
+  'ai.credits.history': '交易流水',
+
+  'ai.credits.usageDetail': '使用明细',
+
+  'ai.credits.noTransactions': '暂无交易记录',
+
+  'ai.credits.noUsage': '暂无使用记录',
+
+  'ai.credits.time': '时间',
+
+  'ai.credits.type': '类型',
+
+  'ai.credits.amount': '变动',
+
+  'ai.credits.note': '备注',
+
+  'ai.credits.model': '模型',
+
+  'ai.credits.cost': '消耗',
+
+  'ai.credits.status': '状态',
+
+  'ai.credits.completed': '完成',
+
+  'ai.credits.provider': '厂商',
+
+  'ai.credits.typePurchase': '充值',
+
+  'ai.credits.typeConsumption': '消费',
+
+  'ai.credits.typeFreeGrant': '免费额度',
+
+  'ai.credits.typeRefund': '退款',
+
+  'ai.credits.typeAdjust': '管理员调整',
+
+  'ai.api.title': 'API 开放平台',
+
+  'ai.api.subtitle': '通过 OpenAI 兼容接口调用 AI 模型，研点计费',
+
+  'ai.api.createKey': '创建 API 密钥',
+
+  'ai.api.keyNamePlaceholder': '为密钥起个名字',
+
+  'ai.api.create': '创建',
+
+  'ai.api.keyCreatedWarning': '请立即复制此密钥，关闭后将无法再次查看。',
+
+  'ai.api.copy': '复制',
+
+  'ai.api.copied': '已复制',
+
+  'ai.api.myKeys': '我的密钥',
+
+  'ai.api.noKeys': '暂无 API 密钥',
+
+  'ai.api.keyName': '名称',
+
+  'ai.api.keyPreview': '密钥',
+
+  'ai.api.lastUsed': '最后使用',
+
+  'ai.api.createdAt': '创建时间',
+
+  'ai.api.revoke': '撤销',
+
+  'ai.api.revokeConfirm': '确认撤销此密钥？撤销后使用该密钥的调用将立即失效。',
+
+  'ai.api.docs': 'API 文档',
+
+  'ai.api.showDocs': '展开文档',
+
+  'ai.api.hideDocs': '收起文档',
+
+  'ai.api.endpoint': '端点地址',
+
+  'ai.api.auth': '认证方式',
+
+  'ai.api.authDesc': '在请求头中传入 Bearer Token 进行认证。',
+
+  'ai.api.example': '调用示例',
+
+  'ai.api.availableModels': '可用模型',
+
+  'ai.api.compatibility': '兼容性说明',
+
+  'ai.api.compat1': '完全兼容 OpenAI Chat Completions API 格式',
+
+  'ai.api.compat2': '支持流式（stream: true）和非流式两种模式',
+
+  'ai.api.compat3': '可使用 openai-python、openai-node 等官方 SDK 直接对接',
+
+  'common.action': '操作',
 };
 
 const zhTW: Dict = {
@@ -231,7 +385,161 @@ const zhTW: Dict = {
   'common.back': '返回',
   'common.submit': '提交',
   'common.all': '全部',
-  'common.view': '查看'
+  'common.view': '查看',
+
+  'nav.ai': '研智助手',
+
+  'nav.groupAI': 'AI 平台',
+
+  'nav.aiCredits': '研點管理',
+
+  'nav.aiApi': 'API 平台',
+
+  'ai.chat.title': '研智助手',
+
+  'ai.chat.subtitle': 'SEOC Studio 智能編程助手',
+
+  'ai.chat.welcome': '你好，我是研智助手',
+
+  'ai.chat.welcomeDesc': '選擇一個模型，輸入你的編程問題，我會盡力為你解答。所有回覆按研點計費，部分模型每日有免費額度。',
+
+  'ai.chat.placeholder': '輸入你的問題，Shift+Enter 換行',
+
+  'ai.chat.send': '發送',
+
+  'ai.chat.model': '選擇模型',
+
+  'ai.chat.balance': '研點餘額',
+
+  'ai.chat.freeRemaining': '今日免費剩餘',
+
+  'ai.chat.freeUsed': '免費',
+
+  'ai.chat.tokenCost': '本次消耗',
+
+  'ai.chat.interrupted': '餘額不足，回覆已中斷',
+
+  'ai.chat.noBalance': '研點不足，無法發送',
+
+  'ai.chat.footerNote': '按 Enter 發送，Shift+Enter 換行。',
+
+  'ai.chat.suggest1': 'Python 裝飾器怎麼用？',
+
+  'ai.chat.suggest2': '解釋一下 JavaScript 閉包',
+
+  'ai.chat.suggest3': '如何優化 SQL 查詢性能？',
+
+  'ai.credits.title': '研點管理',
+
+  'ai.credits.subtitle': '管理你的研點餘額、充值與使用明細',
+
+  'ai.credits.name': '研點',
+
+  'ai.credits.balance': '當前餘額',
+
+  'ai.credits.perDay': '次 / 每日',
+
+  'ai.credits.totalSpent': '累計消耗',
+
+  'ai.credits.topup': '充值研點',
+
+  'ai.credits.selectPlan': '選擇充值方案',
+
+  'ai.credits.topupNote': '充值後研點即時到賬，數位商品一經支付概不退款。',
+
+  'ai.credits.history': '交易流水',
+
+  'ai.credits.usageDetail': '使用明細',
+
+  'ai.credits.noTransactions': '暫無交易記錄',
+
+  'ai.credits.noUsage': '暫無使用記錄',
+
+  'ai.credits.time': '時間',
+
+  'ai.credits.type': '類型',
+
+  'ai.credits.amount': '變動',
+
+  'ai.credits.note': '備註',
+
+  'ai.credits.model': '模型',
+
+  'ai.credits.cost': '消耗',
+
+  'ai.credits.status': '狀態',
+
+  'ai.credits.completed': '完成',
+
+  'ai.credits.provider': '廠商',
+
+  'ai.credits.typePurchase': '充值',
+
+  'ai.credits.typeConsumption': '消費',
+
+  'ai.credits.typeFreeGrant': '免費額度',
+
+  'ai.credits.typeRefund': '退款',
+
+  'ai.credits.typeAdjust': '管理員調整',
+
+  'ai.api.title': 'API 開放平台',
+
+  'ai.api.subtitle': '透過 OpenAI 相容介面呼叫 AI 模型，研點計費',
+
+  'ai.api.createKey': '建立 API 金鑰',
+
+  'ai.api.keyNamePlaceholder': '為金鑰取個名字',
+
+  'ai.api.create': '建立',
+
+  'ai.api.keyCreatedWarning': '請立即複製此金鑰，關閉後將無法再次查看。',
+
+  'ai.api.copy': '複製',
+
+  'ai.api.copied': '已複製',
+
+  'ai.api.myKeys': '我的金鑰',
+
+  'ai.api.noKeys': '暫無 API 金鑰',
+
+  'ai.api.keyName': '名稱',
+
+  'ai.api.keyPreview': '金鑰',
+
+  'ai.api.lastUsed': '最後使用',
+
+  'ai.api.createdAt': '建立時間',
+
+  'ai.api.revoke': '撤銷',
+
+  'ai.api.revokeConfirm': '確認撤銷此金鑰？撤銷後使用該金鑰的呼叫將立即失效。',
+
+  'ai.api.docs': 'API 文件',
+
+  'ai.api.showDocs': '展開文件',
+
+  'ai.api.hideDocs': '收起文件',
+
+  'ai.api.endpoint': '端點位址',
+
+  'ai.api.auth': '認證方式',
+
+  'ai.api.authDesc': '在請求標頭中傳入 Bearer Token 進行認證。',
+
+  'ai.api.example': '呼叫範例',
+
+  'ai.api.availableModels': '可用模型',
+
+  'ai.api.compatibility': '相容性說明',
+
+  'ai.api.compat1': '完全相容 OpenAI Chat Completions API 格式',
+
+  'ai.api.compat2': '支援串流（stream: true）和非串流兩種模式',
+
+  'ai.api.compat3': '可使用 openai-python、openai-node 等官方 SDK 直接對接',
+
+  'common.action': '操作',
 };
 
 const en: Dict = {
@@ -340,7 +648,161 @@ const en: Dict = {
   'common.back': 'Back',
   'common.submit': 'Submit',
   'common.all': 'All',
-  'common.view': 'View'
+  'common.view': 'View',
+
+  'nav.ai': 'AI Assistant',
+
+  'nav.groupAI': 'AI Platform',
+
+  'nav.aiCredits': 'Credits',
+
+  'nav.aiApi': 'API Platform',
+
+  'ai.chat.title': 'SEOC AI Assistant',
+
+  'ai.chat.subtitle': 'SEOC Studio Intelligent Coding Assistant',
+
+  'ai.chat.welcome': 'Hello, I\'m your AI Assistant',
+
+  'ai.chat.welcomeDesc': 'Select a model and ask your coding questions. All replies are billed in Research Points; some models include a daily free quota.',
+
+  'ai.chat.placeholder': 'Type your question, Shift+Enter for new line',
+
+  'ai.chat.send': 'Send',
+
+  'ai.chat.model': 'Select model',
+
+  'ai.chat.balance': 'Balance',
+
+  'ai.chat.freeRemaining': 'Free remaining today',
+
+  'ai.chat.freeUsed': 'Free',
+
+  'ai.chat.tokenCost': 'This message cost',
+
+  'ai.chat.interrupted': 'Insufficient balance, reply interrupted',
+
+  'ai.chat.noBalance': 'Insufficient Research Points to send',
+
+  'ai.chat.footerNote': 'Press Enter to send, Shift+Enter for new line.',
+
+  'ai.chat.suggest1': 'How to use Python decorators?',
+
+  'ai.chat.suggest2': 'Explain JavaScript closures',
+
+  'ai.chat.suggest3': 'How to optimize SQL query performance?',
+
+  'ai.credits.title': 'Research Points',
+
+  'ai.credits.subtitle': 'Manage your balance, top-ups and usage details',
+
+  'ai.credits.name': 'Research Points',
+
+  'ai.credits.balance': 'Current balance',
+
+  'ai.credits.perDay': 'per day',
+
+  'ai.credits.totalSpent': 'Total spent',
+
+  'ai.credits.topup': 'Top up',
+
+  'ai.credits.selectPlan': 'Select a top-up plan',
+
+  'ai.credits.topupNote': 'Points are credited instantly. Digital goods are non-refundable once paid.',
+
+  'ai.credits.history': 'Transaction history',
+
+  'ai.credits.usageDetail': 'Usage details',
+
+  'ai.credits.noTransactions': 'No transactions yet',
+
+  'ai.credits.noUsage': 'No usage records yet',
+
+  'ai.credits.time': 'Time',
+
+  'ai.credits.type': 'Type',
+
+  'ai.credits.amount': 'Change',
+
+  'ai.credits.note': 'Note',
+
+  'ai.credits.model': 'Model',
+
+  'ai.credits.cost': 'Cost',
+
+  'ai.credits.status': 'Status',
+
+  'ai.credits.completed': 'Completed',
+
+  'ai.credits.provider': 'Provider',
+
+  'ai.credits.typePurchase': 'Top-up',
+
+  'ai.credits.typeConsumption': 'Consumption',
+
+  'ai.credits.typeFreeGrant': 'Free quota',
+
+  'ai.credits.typeRefund': 'Refund',
+
+  'ai.credits.typeAdjust': 'Admin adjustment',
+
+  'ai.api.title': 'API Platform',
+
+  'ai.api.subtitle': 'Call AI models via OpenAI-compatible endpoints, billed in Research Points',
+
+  'ai.api.createKey': 'Create API key',
+
+  'ai.api.keyNamePlaceholder': 'Give your key a name',
+
+  'ai.api.create': 'Create',
+
+  'ai.api.keyCreatedWarning': 'Copy this key now. It won\'t be shown again after you close this.',
+
+  'ai.api.copy': 'Copy',
+
+  'ai.api.copied': 'Copied',
+
+  'ai.api.myKeys': 'My keys',
+
+  'ai.api.noKeys': 'No API keys yet',
+
+  'ai.api.keyName': 'Name',
+
+  'ai.api.keyPreview': 'Key',
+
+  'ai.api.lastUsed': 'Last used',
+
+  'ai.api.createdAt': 'Created',
+
+  'ai.api.revoke': 'Revoke',
+
+  'ai.api.revokeConfirm': 'Revoke this key? Calls using it will fail immediately.',
+
+  'ai.api.docs': 'API Documentation',
+
+  'ai.api.showDocs': 'Show docs',
+
+  'ai.api.hideDocs': 'Hide docs',
+
+  'ai.api.endpoint': 'Endpoint URL',
+
+  'ai.api.auth': 'Authentication',
+
+  'ai.api.authDesc': 'Pass a Bearer Token in the Authorization header to authenticate.',
+
+  'ai.api.example': 'Example',
+
+  'ai.api.availableModels': 'Available models',
+
+  'ai.api.compatibility': 'Compatibility notes',
+
+  'ai.api.compat1': 'Fully compatible with the OpenAI Chat Completions API format',
+
+  'ai.api.compat2': 'Supports both streaming (stream: true) and non-streaming modes',
+
+  'ai.api.compat3': 'Works directly with official SDKs such as openai-python and openai-node',
+
+  'common.action': 'Action',
 };
 
 const ja: Dict = {
@@ -449,7 +911,161 @@ const ja: Dict = {
   'common.back': '戻る',
   'common.submit': '送信',
   'common.all': 'すべて',
-  'common.view': '表示'
+  'common.view': '表示',
+
+  'nav.ai': 'AIアシスタント',
+
+  'nav.groupAI': 'AIプラットフォーム',
+
+  'nav.aiCredits': 'ポイント管理',
+
+  'nav.aiApi': 'APIプラットフォーム',
+
+  'ai.chat.title': 'SEOC AIアシスタント',
+
+  'ai.chat.subtitle': 'SEOC Studio インテリジェントコーディングアシスタント',
+
+  'ai.chat.welcome': 'こんにちは、AIアシスタントです',
+
+  'ai.chat.welcomeDesc': 'モデルを選択し、プログラミングの質問を入力してください。すべての返信はポイントで課金されますが、一部のモデルには無料枠があります。',
+
+  'ai.chat.placeholder': '質問を入力、Shift+Enter で改行',
+
+  'ai.chat.send': '送信',
+
+  'ai.chat.model': 'モデルを選択',
+
+  'ai.chat.balance': 'ポイント残高',
+
+  'ai.chat.freeRemaining': '本日の無料残り',
+
+  'ai.chat.freeUsed': '無料',
+
+  'ai.chat.tokenCost': '今回の消費',
+
+  'ai.chat.interrupted': '残高不足のため返信が中断されました',
+
+  'ai.chat.noBalance': 'ポイント不足のため送信できません',
+
+  'ai.chat.footerNote': 'Enter で送信、Shift+Enter で改行。',
+
+  'ai.chat.suggest1': 'Python デコレータの使い方は？',
+
+  'ai.chat.suggest2': 'JavaScript クロージャを説明して',
+
+  'ai.chat.suggest3': 'SQL クエリのパフォーマンスを最適化するには？',
+
+  'ai.credits.title': 'ポイント管理',
+
+  'ai.credits.subtitle': 'ポイント残高、チャージ、使用明細を管理',
+
+  'ai.credits.name': 'ポイント',
+
+  'ai.credits.balance': '現在の残高',
+
+  'ai.credits.perDay': '回 / 毎日',
+
+  'ai.credits.totalSpent': '累計消費',
+
+  'ai.credits.topup': 'チャージ',
+
+  'ai.credits.selectPlan': 'チャージプランを選択',
+
+  'ai.credits.topupNote': 'チャージ後ポイントは即時反映されます。デジタル商品は支払い後の返金はできません。',
+
+  'ai.credits.history': '取引履歴',
+
+  'ai.credits.usageDetail': '使用明細',
+
+  'ai.credits.noTransactions': '取引記録はありません',
+
+  'ai.credits.noUsage': '使用記録はありません',
+
+  'ai.credits.time': '時間',
+
+  'ai.credits.type': 'タイプ',
+
+  'ai.credits.amount': '変動',
+
+  'ai.credits.note': '備考',
+
+  'ai.credits.model': 'モデル',
+
+  'ai.credits.cost': '消費',
+
+  'ai.credits.status': 'ステータス',
+
+  'ai.credits.completed': '完了',
+
+  'ai.credits.provider': 'プロバイダー',
+
+  'ai.credits.typePurchase': 'チャージ',
+
+  'ai.credits.typeConsumption': '消費',
+
+  'ai.credits.typeFreeGrant': '無料枠',
+
+  'ai.credits.typeRefund': '返金',
+
+  'ai.credits.typeAdjust': '管理者調整',
+
+  'ai.api.title': 'APIプラットフォーム',
+
+  'ai.api.subtitle': 'OpenAI 互換インターフェースで AI モデルを呼び出し、ポイントで課金',
+
+  'ai.api.createKey': 'API キーを作成',
+
+  'ai.api.keyNamePlaceholder': 'キーに名前を付ける',
+
+  'ai.api.create': '作成',
+
+  'ai.api.keyCreatedWarning': 'このキーを今すぐコピーしてください。閉じると再度表示されません。',
+
+  'ai.api.copy': 'コピー',
+
+  'ai.api.copied': 'コピー済み',
+
+  'ai.api.myKeys': 'マイキー',
+
+  'ai.api.noKeys': 'API キーはありません',
+
+  'ai.api.keyName': '名前',
+
+  'ai.api.keyPreview': 'キー',
+
+  'ai.api.lastUsed': '最終使用',
+
+  'ai.api.createdAt': '作成日時',
+
+  'ai.api.revoke': '取り消し',
+
+  'ai.api.revokeConfirm': 'このキーを取り消しますか？このキーを使った呼び出しは即座に無効になります。',
+
+  'ai.api.docs': 'API ドキュメント',
+
+  'ai.api.showDocs': 'ドキュメントを表示',
+
+  'ai.api.hideDocs': 'ドキュメントを非表示',
+
+  'ai.api.endpoint': 'エンドポイント URL',
+
+  'ai.api.auth': '認証方法',
+
+  'ai.api.authDesc': 'Authorization ヘッダーに Bearer トークンを渡して認証します。',
+
+  'ai.api.example': '呼び出し例',
+
+  'ai.api.availableModels': '利用可能なモデル',
+
+  'ai.api.compatibility': '互換性の説明',
+
+  'ai.api.compat1': 'OpenAI Chat Completions API 形式と完全互換',
+
+  'ai.api.compat2': 'ストリーミング (stream: true) と非ストリーミングの両モードに対応',
+
+  'ai.api.compat3': 'openai-python、openai-node などの公式 SDK で直接利用可能',
+
+  'common.action': '操作',
 };
 
 const ko: Dict = {
@@ -558,7 +1174,161 @@ const ko: Dict = {
   'common.back': '뒤로',
   'common.submit': '제출',
   'common.all': '전체',
-  'common.view': '보기'
+  'common.view': '보기',
+
+  'nav.ai': 'AI 어시스턴트',
+
+  'nav.groupAI': 'AI 플랫폼',
+
+  'nav.aiCredits': '포인트 관리',
+
+  'nav.aiApi': 'API 플랫폼',
+
+  'ai.chat.title': 'SEOC AI 어시스턴트',
+
+  'ai.chat.subtitle': 'SEOC Studio 지능형 코딩 어시스턴트',
+
+  'ai.chat.welcome': '안녕하세요, AI 어시스턴트입니다',
+
+  'ai.chat.welcomeDesc': '모델을 선택하고 코딩 질문을 입력하세요. 모든 응답은 포인트로 과금되며, 일부 모델은 매일 무료 할당이 있습니다.',
+
+  'ai.chat.placeholder': '질문을 입력하세요, Shift+Enter로 줄바꿈',
+
+  'ai.chat.send': '보내기',
+
+  'ai.chat.model': '모델 선택',
+
+  'ai.chat.balance': '포인트 잔액',
+
+  'ai.chat.freeRemaining': '오늘 무료 잔여',
+
+  'ai.chat.freeUsed': '무료',
+
+  'ai.chat.tokenCost': '이번 소비',
+
+  'ai.chat.interrupted': '잔액 부족으로 응답이 중단되었습니다',
+
+  'ai.chat.noBalance': '포인트가 부족하여 전송할 수 없습니다',
+
+  'ai.chat.footerNote': 'Enter로 보내기, Shift+Enter로 줄바꿈.',
+
+  'ai.chat.suggest1': 'Python 데코레이터는 어떻게 사용하나요?',
+
+  'ai.chat.suggest2': 'JavaScript 클로저를 설명해주세요',
+
+  'ai.chat.suggest3': 'SQL 쿼리 성능을 어떻게 최적화하나요?',
+
+  'ai.credits.title': '포인트 관리',
+
+  'ai.credits.subtitle': '포인트 잔액, 충전 및 사용 내역 관리',
+
+  'ai.credits.name': '포인트',
+
+  'ai.credits.balance': '현재 잔액',
+
+  'ai.credits.perDay': '회 / 매일',
+
+  'ai.credits.totalSpent': '누적 소비',
+
+  'ai.credits.topup': '충전',
+
+  'ai.credits.selectPlan': '충전 플랜 선택',
+
+  'ai.credits.topupNote': '충전 후 포인트가 즉시 반영됩니다. 디지털 상품은 결제 후 환불이 불가합니다.',
+
+  'ai.credits.history': '거래 내역',
+
+  'ai.credits.usageDetail': '사용 내역',
+
+  'ai.credits.noTransactions': '거래 내역이 없습니다',
+
+  'ai.credits.noUsage': '사용 기록이 없습니다',
+
+  'ai.credits.time': '시간',
+
+  'ai.credits.type': '유형',
+
+  'ai.credits.amount': '변동',
+
+  'ai.credits.note': '비고',
+
+  'ai.credits.model': '모델',
+
+  'ai.credits.cost': '소비',
+
+  'ai.credits.status': '상태',
+
+  'ai.credits.completed': '완료',
+
+  'ai.credits.provider': '제공자',
+
+  'ai.credits.typePurchase': '충전',
+
+  'ai.credits.typeConsumption': '소비',
+
+  'ai.credits.typeFreeGrant': '무료 할당',
+
+  'ai.credits.typeRefund': '환불',
+
+  'ai.credits.typeAdjust': '관리자 조정',
+
+  'ai.api.title': 'API 플랫폼',
+
+  'ai.api.subtitle': 'OpenAI 호환 인터페이스로 AI 모델 호출, 포인트로 과금',
+
+  'ai.api.createKey': 'API 키 생성',
+
+  'ai.api.keyNamePlaceholder': '키 이름 입력',
+
+  'ai.api.create': '생성',
+
+  'ai.api.keyCreatedWarning': '이 키를 지금 복사하세요. 닫으면 다시 볼 수 없습니다.',
+
+  'ai.api.copy': '복사',
+
+  'ai.api.copied': '복사됨',
+
+  'ai.api.myKeys': '내 키',
+
+  'ai.api.noKeys': 'API 키가 없습니다',
+
+  'ai.api.keyName': '이름',
+
+  'ai.api.keyPreview': '키',
+
+  'ai.api.lastUsed': '마지막 사용',
+
+  'ai.api.createdAt': '생성일',
+
+  'ai.api.revoke': '철회',
+
+  'ai.api.revokeConfirm': '이 키를 철회하시겠습니까? 이 키를 사용하는 호출이 즉시 실패합니다.',
+
+  'ai.api.docs': 'API 문서',
+
+  'ai.api.showDocs': '문서 보기',
+
+  'ai.api.hideDocs': '문서 숨기기',
+
+  'ai.api.endpoint': '엔드포인트 URL',
+
+  'ai.api.auth': '인증 방식',
+
+  'ai.api.authDesc': 'Authorization 헤더에 Bearer Token을 전달하여 인증합니다.',
+
+  'ai.api.example': '호출 예시',
+
+  'ai.api.availableModels': '사용 가능한 모델',
+
+  'ai.api.compatibility': '호환성 설명',
+
+  'ai.api.compat1': 'OpenAI Chat Completions API 형식과 완전 호환',
+
+  'ai.api.compat2': '스트리밍(stream: true) 및 비스트리밍 모드 모두 지원',
+
+  'ai.api.compat3': 'openai-python, openai-node 등 공식 SDK로 직접 연동 가능',
+
+  'common.action': '작업',
 };
 
 const fr: Dict = {
@@ -667,7 +1437,161 @@ const fr: Dict = {
   'common.back': 'Retour',
   'common.submit': 'Envoyer',
   'common.all': 'Tout',
-  'common.view': 'Voir'
+  'common.view': 'Voir',
+
+  'nav.ai': 'Assistant IA',
+
+  'nav.groupAI': 'Plateforme IA',
+
+  'nav.aiCredits': 'Crédits',
+
+  'nav.aiApi': 'Plateforme API',
+
+  'ai.chat.title': 'Assistant IA SEOC',
+
+  'ai.chat.subtitle': 'Assistant de codage intelligent SEOC Studio',
+
+  'ai.chat.welcome': 'Bonjour, je suis votre assistant IA',
+
+  'ai.chat.welcomeDesc': 'Sélectionnez un modèle et posez vos questions de programmation. Toutes les réponses sont facturées en points ; certains modèles offrent un quota gratuit quotidien.',
+
+  'ai.chat.placeholder': 'Tapez votre question, Shift+Entrée pour une nouvelle ligne',
+
+  'ai.chat.send': 'Envoyer',
+
+  'ai.chat.model': 'Choisir le modèle',
+
+  'ai.chat.balance': 'Solde',
+
+  'ai.chat.freeRemaining': 'Gratuit restant aujourd\'hui',
+
+  'ai.chat.freeUsed': 'Gratuit',
+
+  'ai.chat.tokenCost': 'Coût de ce message',
+
+  'ai.chat.interrupted': 'Solde insuffisant, réponse interrompue',
+
+  'ai.chat.noBalance': 'Points insuffisants pour envoyer',
+
+  'ai.chat.footerNote': 'Appuyez sur Entrée pour envoyer, Shift+Entrée pour une nouvelle ligne.',
+
+  'ai.chat.suggest1': 'Comment utiliser les décorateurs Python ?',
+
+  'ai.chat.suggest2': 'Expliquez les fermetures JavaScript',
+
+  'ai.chat.suggest3': 'Comment optimiser les performances des requêtes SQL ?',
+
+  'ai.credits.title': 'Gestion des points',
+
+  'ai.credits.subtitle': 'Gérez votre solde, recharges et détails d\'utilisation',
+
+  'ai.credits.name': 'Points',
+
+  'ai.credits.balance': 'Solde actuel',
+
+  'ai.credits.perDay': 'par jour',
+
+  'ai.credits.totalSpent': 'Total dépensé',
+
+  'ai.credits.topup': 'Recharger',
+
+  'ai.credits.selectPlan': 'Choisir un plan de recharge',
+
+  'ai.credits.topupNote': 'Les points sont crédités instantanément. Les produits numériques ne sont pas remboursables après paiement.',
+
+  'ai.credits.history': 'Historique des transactions',
+
+  'ai.credits.usageDetail': 'Détails d\'utilisation',
+
+  'ai.credits.noTransactions': 'Aucune transaction',
+
+  'ai.credits.noUsage': 'Aucun enregistrement d\'utilisation',
+
+  'ai.credits.time': 'Heure',
+
+  'ai.credits.type': 'Type',
+
+  'ai.credits.amount': 'Variation',
+
+  'ai.credits.note': 'Note',
+
+  'ai.credits.model': 'Modèle',
+
+  'ai.credits.cost': 'Coût',
+
+  'ai.credits.status': 'Statut',
+
+  'ai.credits.completed': 'Terminé',
+
+  'ai.credits.provider': 'Fournisseur',
+
+  'ai.credits.typePurchase': 'Recharge',
+
+  'ai.credits.typeConsumption': 'Consommation',
+
+  'ai.credits.typeFreeGrant': 'Quota gratuit',
+
+  'ai.credits.typeRefund': 'Remboursement',
+
+  'ai.credits.typeAdjust': 'Ajustement admin',
+
+  'ai.api.title': 'Plateforme API',
+
+  'ai.api.subtitle': 'Appelez les modèles IA via une interface compatible OpenAI, facturée en points',
+
+  'ai.api.createKey': 'Créer une clé API',
+
+  'ai.api.keyNamePlaceholder': 'Donnez un nom à votre clé',
+
+  'ai.api.create': 'Créer',
+
+  'ai.api.keyCreatedWarning': 'Copiez cette clé maintenant. Elle ne sera plus affichée après fermeture.',
+
+  'ai.api.copy': 'Copier',
+
+  'ai.api.copied': 'Copié',
+
+  'ai.api.myKeys': 'Mes clés',
+
+  'ai.api.noKeys': 'Aucune clé API',
+
+  'ai.api.keyName': 'Nom',
+
+  'ai.api.keyPreview': 'Clé',
+
+  'ai.api.lastUsed': 'Dernière utilisation',
+
+  'ai.api.createdAt': 'Créé le',
+
+  'ai.api.revoke': 'Révoquer',
+
+  'ai.api.revokeConfirm': 'Révoquer cette clé ? Les appels l\'utilisant échoueront immédiatement.',
+
+  'ai.api.docs': 'Documentation API',
+
+  'ai.api.showDocs': 'Afficher la doc',
+
+  'ai.api.hideDocs': 'Masquer la doc',
+
+  'ai.api.endpoint': 'URL du point de terminaison',
+
+  'ai.api.auth': 'Authentification',
+
+  'ai.api.authDesc': 'Passez un Bearer Token dans l\'en-tête Authorization pour vous authentifier.',
+
+  'ai.api.example': 'Exemple d\'appel',
+
+  'ai.api.availableModels': 'Modèles disponibles',
+
+  'ai.api.compatibility': 'Notes de compatibilité',
+
+  'ai.api.compat1': 'Entièrement compatible avec le format de l\'API OpenAI Chat Completions',
+
+  'ai.api.compat2': 'Prend en charge les modes streaming (stream: true) et non-streaming',
+
+  'ai.api.compat3': 'Fonctionne directement avec les SDK officiels tels que openai-python et openai-node',
+
+  'common.action': 'Action',
 };
 
 const de: Dict = {
@@ -776,7 +1700,161 @@ const de: Dict = {
   'common.back': 'Zurück',
   'common.submit': 'Absenden',
   'common.all': 'Alle',
-  'common.view': 'Ansehen'
+  'common.view': 'Ansehen',
+
+  'nav.ai': 'KI-Assistent',
+
+  'nav.groupAI': 'KI-Plattform',
+
+  'nav.aiCredits': 'Punkte verwalten',
+
+  'nav.aiApi': 'API-Plattform',
+
+  'ai.chat.title': 'SEOC KI-Assistent',
+
+  'ai.chat.subtitle': 'SEOC Studio Intelligenter Coding-Assistent',
+
+  'ai.chat.welcome': 'Hallo, ich bin dein KI-Assistent',
+
+  'ai.chat.welcomeDesc': 'Wählen Sie ein Modell und stellen Sie Ihre Programmierfragen. Alle Antworten werden in Punkten abgerechnet; einige Modelle haben ein tägliches Freikontingent.',
+
+  'ai.chat.placeholder': 'Frage eingeben, Shift+Enter für neue Zeile',
+
+  'ai.chat.send': 'Senden',
+
+  'ai.chat.model': 'Modell wählen',
+
+  'ai.chat.balance': 'Guthaben',
+
+  'ai.chat.freeRemaining': 'Heute kostenlos übrig',
+
+  'ai.chat.freeUsed': 'Kostenlos',
+
+  'ai.chat.tokenCost': 'Kosten dieser Nachricht',
+
+  'ai.chat.interrupted': 'Unzureichendes Guthaben, Antwort abgebrochen',
+
+  'ai.chat.noBalance': 'Unzureichende Punkte zum Senden',
+
+  'ai.chat.footerNote': 'Enter zum Senden, Shift+Enter für neue Zeile.',
+
+  'ai.chat.suggest1': 'Wie verwende ich Python-Dekoratoren?',
+
+  'ai.chat.suggest2': 'Erkläre JavaScript Closures',
+
+  'ai.chat.suggest3': 'Wie optimiere ich die SQL-Abfrageleistung?',
+
+  'ai.credits.title': 'Punkte verwalten',
+
+  'ai.credits.subtitle': 'Verwalten Sie Guthaben, Aufladungen und Nutzungsdetails',
+
+  'ai.credits.name': 'Punkte',
+
+  'ai.credits.balance': 'Aktuelles Guthaben',
+
+  'ai.credits.perDay': 'pro Tag',
+
+  'ai.credits.totalSpent': 'Gesamt verbraucht',
+
+  'ai.credits.topup': 'Aufladen',
+
+  'ai.credits.selectPlan': 'Aufladeplan wählen',
+
+  'ai.credits.topupNote': 'Punkte werden sofort gutgeschrieben. Digitale Produkte sind nach Zahlung nicht erstattungsfähig.',
+
+  'ai.credits.history': 'Transaktionsverlauf',
+
+  'ai.credits.usageDetail': 'Nutzungsdetails',
+
+  'ai.credits.noTransactions': 'Keine Transaktionen',
+
+  'ai.credits.noUsage': 'Keine Nutzungsaufzeichnungen',
+
+  'ai.credits.time': 'Zeit',
+
+  'ai.credits.type': 'Typ',
+
+  'ai.credits.amount': 'Änderung',
+
+  'ai.credits.note': 'Notiz',
+
+  'ai.credits.model': 'Modell',
+
+  'ai.credits.cost': 'Kosten',
+
+  'ai.credits.status': 'Status',
+
+  'ai.credits.completed': 'Abgeschlossen',
+
+  'ai.credits.provider': 'Anbieter',
+
+  'ai.credits.typePurchase': 'Aufladung',
+
+  'ai.credits.typeConsumption': 'Verbrauch',
+
+  'ai.credits.typeFreeGrant': 'Freikontingent',
+
+  'ai.credits.typeRefund': 'Erstattung',
+
+  'ai.credits.typeAdjust': 'Admin-Anpassung',
+
+  'ai.api.title': 'API-Plattform',
+
+  'ai.api.subtitle': 'Rufen Sie KI-Modelle über OpenAI-kompatible Schnittstellen auf, Abrechnung in Punkten',
+
+  'ai.api.createKey': 'API-Schlüssel erstellen',
+
+  'ai.api.keyNamePlaceholder': 'Geben Sie Ihrem Schlüssel einen Namen',
+
+  'ai.api.create': 'Erstellen',
+
+  'ai.api.keyCreatedWarning': 'Kopieren Sie diesen Schlüssel jetzt. Er wird nach dem Schließen nicht mehr angezeigt.',
+
+  'ai.api.copy': 'Kopieren',
+
+  'ai.api.copied': 'Kopiert',
+
+  'ai.api.myKeys': 'Meine Schlüssel',
+
+  'ai.api.noKeys': 'Keine API-Schlüssel',
+
+  'ai.api.keyName': 'Name',
+
+  'ai.api.keyPreview': 'Schlüssel',
+
+  'ai.api.lastUsed': 'Zuletzt verwendet',
+
+  'ai.api.createdAt': 'Erstellt',
+
+  'ai.api.revoke': 'Widerrufen',
+
+  'ai.api.revokeConfirm': 'Diesen Schlüssel widerrufen? Aufrufe damit werden sofort fehlschlagen.',
+
+  'ai.api.docs': 'API-Dokumentation',
+
+  'ai.api.showDocs': 'Dokumentation anzeigen',
+
+  'ai.api.hideDocs': 'Dokumentation ausblenden',
+
+  'ai.api.endpoint': 'Endpunkt-URL',
+
+  'ai.api.auth': 'Authentifizierung',
+
+  'ai.api.authDesc': 'Übergeben Sie ein Bearer-Token im Authorization-Header zur Authentifizierung.',
+
+  'ai.api.example': 'Aufrufbeispiel',
+
+  'ai.api.availableModels': 'Verfügbare Modelle',
+
+  'ai.api.compatibility': 'Kompatibilitätshinweise',
+
+  'ai.api.compat1': 'Vollständig kompatibel mit dem OpenAI Chat Completions API-Format',
+
+  'ai.api.compat2': 'Unterstützt sowohl Streaming- (stream: true) als auch Nicht-Streaming-Modi',
+
+  'ai.api.compat3': 'Funktioniert direkt mit offiziellen SDKs wie openai-python und openai-node',
+
+  'common.action': 'Aktion',
 };
 
 const es: Dict = {
@@ -885,7 +1963,161 @@ const es: Dict = {
   'common.back': 'Volver',
   'common.submit': 'Enviar',
   'common.all': 'Todo',
-  'common.view': 'Ver'
+  'common.view': 'Ver',
+
+  'nav.ai': 'Asistente IA',
+
+  'nav.groupAI': 'Plataforma IA',
+
+  'nav.aiCredits': 'Créditos',
+
+  'nav.aiApi': 'Plataforma API',
+
+  'ai.chat.title': 'Asistente IA SEOC',
+
+  'ai.chat.subtitle': 'Asistente de codificación inteligente SEOC Studio',
+
+  'ai.chat.welcome': 'Hola, soy tu asistente IA',
+
+  'ai.chat.welcomeDesc': 'Selecciona un modelo y haz tus preguntas de programación. Todas las respuestas se facturan en puntos; algunos modelos incluyen una cuota gratuita diaria.',
+
+  'ai.chat.placeholder': 'Escribe tu pregunta, Shift+Enter para nueva línea',
+
+  'ai.chat.send': 'Enviar',
+
+  'ai.chat.model': 'Seleccionar modelo',
+
+  'ai.chat.balance': 'Saldo',
+
+  'ai.chat.freeRemaining': 'Gratis restante hoy',
+
+  'ai.chat.freeUsed': 'Gratis',
+
+  'ai.chat.tokenCost': 'Coste de este mensaje',
+
+  'ai.chat.interrupted': 'Saldo insuficiente, respuesta interrumpida',
+
+  'ai.chat.noBalance': 'Puntos insuficientes para enviar',
+
+  'ai.chat.footerNote': 'Pulsa Enter para enviar, Shift+Enter para nueva línea.',
+
+  'ai.chat.suggest1': '¿Cómo usar decoradores en Python?',
+
+  'ai.chat.suggest2': 'Explica las closures de JavaScript',
+
+  'ai.chat.suggest3': '¿Cómo optimizar el rendimiento de consultas SQL?',
+
+  'ai.credits.title': 'Gestión de puntos',
+
+  'ai.credits.subtitle': 'Gestiona tu saldo, recargas y detalles de uso',
+
+  'ai.credits.name': 'Puntos',
+
+  'ai.credits.balance': 'Saldo actual',
+
+  'ai.credits.perDay': 'por día',
+
+  'ai.credits.totalSpent': 'Total gastado',
+
+  'ai.credits.topup': 'Recargar',
+
+  'ai.credits.selectPlan': 'Seleccionar plan de recarga',
+
+  'ai.credits.topupNote': 'Los puntos se acreditan al instante. Los productos digitales no son reembolsables tras el pago.',
+
+  'ai.credits.history': 'Historial de transacciones',
+
+  'ai.credits.usageDetail': 'Detalles de uso',
+
+  'ai.credits.noTransactions': 'Sin transacciones',
+
+  'ai.credits.noUsage': 'Sin registros de uso',
+
+  'ai.credits.time': 'Hora',
+
+  'ai.credits.type': 'Tipo',
+
+  'ai.credits.amount': 'Cambio',
+
+  'ai.credits.note': 'Nota',
+
+  'ai.credits.model': 'Modelo',
+
+  'ai.credits.cost': 'Coste',
+
+  'ai.credits.status': 'Estado',
+
+  'ai.credits.completed': 'Completado',
+
+  'ai.credits.provider': 'Proveedor',
+
+  'ai.credits.typePurchase': 'Recarga',
+
+  'ai.credits.typeConsumption': 'Consumo',
+
+  'ai.credits.typeFreeGrant': 'Cuota gratuita',
+
+  'ai.credits.typeRefund': 'Reembolso',
+
+  'ai.credits.typeAdjust': 'Ajuste de admin',
+
+  'ai.api.title': 'Plataforma API',
+
+  'ai.api.subtitle': 'Llama a modelos IA mediante interfaz compatible con OpenAI, facturado en puntos',
+
+  'ai.api.createKey': 'Crear clave API',
+
+  'ai.api.keyNamePlaceholder': 'Dale un nombre a tu clave',
+
+  'ai.api.create': 'Crear',
+
+  'ai.api.keyCreatedWarning': 'Copia esta clave ahora. No se mostrará de nuevo después de cerrar.',
+
+  'ai.api.copy': 'Copiar',
+
+  'ai.api.copied': 'Copiado',
+
+  'ai.api.myKeys': 'Mis claves',
+
+  'ai.api.noKeys': 'Sin claves API',
+
+  'ai.api.keyName': 'Nombre',
+
+  'ai.api.keyPreview': 'Clave',
+
+  'ai.api.lastUsed': 'Último uso',
+
+  'ai.api.createdAt': 'Creado',
+
+  'ai.api.revoke': 'Revocar',
+
+  'ai.api.revokeConfirm': '¿Revocar esta clave? Las llamadas que la usen fallarán inmediatamente.',
+
+  'ai.api.docs': 'Documentación API',
+
+  'ai.api.showDocs': 'Mostrar docs',
+
+  'ai.api.hideDocs': 'Ocultar docs',
+
+  'ai.api.endpoint': 'URL del endpoint',
+
+  'ai.api.auth': 'Autenticación',
+
+  'ai.api.authDesc': 'Pasa un Bearer Token en el encabezado Authorization para autenticarte.',
+
+  'ai.api.example': 'Ejemplo de llamada',
+
+  'ai.api.availableModels': 'Modelos disponibles',
+
+  'ai.api.compatibility': 'Notas de compatibilidad',
+
+  'ai.api.compat1': 'Totalmente compatible con el formato de la API OpenAI Chat Completions',
+
+  'ai.api.compat2': 'Admite modos streaming (stream: true) y no-streaming',
+
+  'ai.api.compat3': 'Funciona directamente con SDKs oficiales como openai-python y openai-node',
+
+  'common.action': 'Acción',
 };
 
 const ru: Dict = {
@@ -994,7 +2226,161 @@ const ru: Dict = {
   'common.back': 'Назад',
   'common.submit': 'Отправить',
   'common.all': 'Все',
-  'common.view': 'Смотреть'
+  'common.view': 'Смотреть',
+
+  'nav.ai': 'ИИ-ассистент',
+
+  'nav.groupAI': 'ИИ-платформа',
+
+  'nav.aiCredits': 'Баллы',
+
+  'nav.aiApi': 'API-платформа',
+
+  'ai.chat.title': 'ИИ-ассистент SEOC',
+
+  'ai.chat.subtitle': 'Интеллектуальный помощник SEOC Studio',
+
+  'ai.chat.welcome': 'Привет, я ваш ИИ-ассистент',
+
+  'ai.chat.welcomeDesc': 'Выберите модель и задайте вопрос по программированию. Все ответы тарифицируются в баллах; у некоторых моделей есть ежедневная бесплатная квота.',
+
+  'ai.chat.placeholder': 'Введите вопрос, Shift+Enter для новой строки',
+
+  'ai.chat.send': 'Отправить',
+
+  'ai.chat.model': 'Выбрать модель',
+
+  'ai.chat.balance': 'Баланс',
+
+  'ai.chat.freeRemaining': 'Бесплатно осталось сегодня',
+
+  'ai.chat.freeUsed': 'Бесплатно',
+
+  'ai.chat.tokenCost': 'Стоимость этого сообщения',
+
+  'ai.chat.interrupted': 'Недостаточно баллов, ответ прерван',
+
+  'ai.chat.noBalance': 'Недостаточно баллов для отправки',
+
+  'ai.chat.footerNote': 'Enter для отправки, Shift+Enter для новой строки.',
+
+  'ai.chat.suggest1': 'Как использовать декораторы в Python?',
+
+  'ai.chat.suggest2': 'Объясните замыкания в JavaScript',
+
+  'ai.chat.suggest3': 'Как оптимизировать производительность SQL-запросов?',
+
+  'ai.credits.title': 'Управление баллами',
+
+  'ai.credits.subtitle': 'Управление балансом, пополнениями и деталями использования',
+
+  'ai.credits.name': 'Баллы',
+
+  'ai.credits.balance': 'Текущий баланс',
+
+  'ai.credits.perDay': 'в день',
+
+  'ai.credits.totalSpent': 'Всего потрачено',
+
+  'ai.credits.topup': 'Пополнить',
+
+  'ai.credits.selectPlan': 'Выбрать план пополнения',
+
+  'ai.credits.topupNote': 'Баллы зачисляются мгновенно. Цифровые товары не подлежат возврату после оплаты.',
+
+  'ai.credits.history': 'История транзакций',
+
+  'ai.credits.usageDetail': 'Детали использования',
+
+  'ai.credits.noTransactions': 'Нет транзакций',
+
+  'ai.credits.noUsage': 'Нет записей использования',
+
+  'ai.credits.time': 'Время',
+
+  'ai.credits.type': 'Тип',
+
+  'ai.credits.amount': 'Изменение',
+
+  'ai.credits.note': 'Примечание',
+
+  'ai.credits.model': 'Модель',
+
+  'ai.credits.cost': 'Стоимость',
+
+  'ai.credits.status': 'Статус',
+
+  'ai.credits.completed': 'Завершено',
+
+  'ai.credits.provider': 'Провайдер',
+
+  'ai.credits.typePurchase': 'Пополнение',
+
+  'ai.credits.typeConsumption': 'Потребление',
+
+  'ai.credits.typeFreeGrant': 'Бесплатная квота',
+
+  'ai.credits.typeRefund': 'Возврат',
+
+  'ai.credits.typeAdjust': 'Корректировка админа',
+
+  'ai.api.title': 'API-платформа',
+
+  'ai.api.subtitle': 'Вызов ИИ-моделей через OpenAI-совместимый интерфейс, тарификация в баллах',
+
+  'ai.api.createKey': 'Создать API-ключ',
+
+  'ai.api.keyNamePlaceholder': 'Дайте имя вашему ключу',
+
+  'ai.api.create': 'Создать',
+
+  'ai.api.keyCreatedWarning': 'Скопируйте этот ключ сейчас. После закрытия он больше не будет показан.',
+
+  'ai.api.copy': 'Копировать',
+
+  'ai.api.copied': 'Скопировано',
+
+  'ai.api.myKeys': 'Мои ключи',
+
+  'ai.api.noKeys': 'Нет API-ключей',
+
+  'ai.api.keyName': 'Имя',
+
+  'ai.api.keyPreview': 'Ключ',
+
+  'ai.api.lastUsed': 'Последнее использование',
+
+  'ai.api.createdAt': 'Создано',
+
+  'ai.api.revoke': 'Отозвать',
+
+  'ai.api.revokeConfirm': 'Отозвать этот ключ? Вызовы с его использованием немедленно перестанут работать.',
+
+  'ai.api.docs': 'Документация API',
+
+  'ai.api.showDocs': 'Показать документацию',
+
+  'ai.api.hideDocs': 'Скрыть документацию',
+
+  'ai.api.endpoint': 'URL эндпоинта',
+
+  'ai.api.auth': 'Аутентификация',
+
+  'ai.api.authDesc': 'Передайте Bearer Token в заголовке Authorization для аутентификации.',
+
+  'ai.api.example': 'Пример вызова',
+
+  'ai.api.availableModels': 'Доступные модели',
+
+  'ai.api.compatibility': 'Примечания о совместимости',
+
+  'ai.api.compat1': 'Полностью совместим с форматом OpenAI Chat Completions API',
+
+  'ai.api.compat2': 'Поддерживает как потоковый (stream: true), так и непотоковый режимы',
+
+  'ai.api.compat3': 'Работает напрямую с официальными SDK, такими как openai-python и openai-node',
+
+  'common.action': 'Действие',
 };
 
 const DICTS: Record<Lang, Dict> = {

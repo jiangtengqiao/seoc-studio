@@ -37,7 +37,13 @@ export const LEGAL_TITLES: Record<string, string> = {
   'minor-protection': '未成年人保护声明',
   'maintenance-policy': '内容维护与更新政策',
   'materials-license': '附赠资料使用许可',
-  'anti-fraud': '举报与反假冒声明'
+  'anti-fraud': '举报与反假冒声明',
+  'ai-service-agreement': '研智助手 AI 服务协议',
+  'ai-credits-policy': '研点购买与消费协议',
+  'ai-content-disclaimer': 'AI 生成内容免责声明',
+  'ai-data-privacy': 'AI 数据处理与隐私补充声明',
+  'ai-api-terms': 'API 开放平台服务条款',
+  'ai-third-party-models': '第三方 AI 模型使用说明'
 };
 
 function parseIssue(raw: string): Omit<Issue, 'id' | 'published_at'> | null {
