@@ -155,20 +155,27 @@ create policy "ai_context_configs admin write" on ai_context_configs for all usi
 -- 触发器：新用户注册时自动创建 ai_credits 记录
 -- ============================================================
 create or replace function handle_ai_credits_for_new_user()
-returns trigger language plpgsql security definer as
+returns trigger language plpgsql security definer set search_path = public as
 $$
 begin
   insert into ai_credits (user_id, balance, free_remaining, free_reset_date)
   values (new.id, 0, 0, current_date)
   on conflict (user_id) do nothing;
   return new;
+exception when others then
+  return new;
 end;
 $$;
 
--- 将新 trigger 挂到 auth.users（与 handle_new_user 并行）
+-- 挂到 public.profiles（而非 auth.users）：
+-- 修复注册报错 "Database error saving new user"。原挂 auth.users 时，
+-- 该触发器可能与 handle_new_user 竞争执行顺序，profiles 行尚未创建时
+-- 插入 ai_credits 会触发外键 (references profiles(id)) 违反，
+-- 导致整个注册事务回滚。改挂 profiles 后，profiles 行必然已存在。
 drop trigger if exists on_auth_user_created_ai_credits on auth.users;
+drop trigger if exists on_auth_user_created_ai_credits on profiles;
 create trigger on_auth_user_created_ai_credits
-  after insert on auth.users
+  after insert on profiles
   for each row execute function handle_ai_credits_for_new_user();
 
 -- ============================================================
