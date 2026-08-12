@@ -26,6 +26,9 @@ create table if not exists ai_models (
   updated_at timestamptz not null default now()
 );
 
+-- 兼容旧库：若 ai_models 表已存在但缺少 min_tier 列，则补充
+alter table ai_models add column if not exists min_tier text not null default 'lite' check (min_tier in ('lite','plus','pro','max'));
+
 -- ============================================================
 -- 2. ai_credits — 用户研点余额
 -- ============================================================
