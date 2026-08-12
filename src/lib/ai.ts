@@ -14,6 +14,7 @@ export interface AIModel {
   input_price: number;
   output_price: number;
   free_daily_quota: number;
+  min_tier: 'lite' | 'plus' | 'pro' | 'max';
   enabled: boolean;
   sort_order: number;
 }
@@ -80,6 +81,7 @@ export async function getModels(): Promise<AIModel[]> {
         input_price: 2,
         output_price: 6,
         free_daily_quota: 5,
+        min_tier: 'lite' as const,
         enabled: true,
         sort_order: 1,
       },
@@ -90,6 +92,7 @@ export async function getModels(): Promise<AIModel[]> {
         input_price: 5,
         output_price: 15,
         free_daily_quota: 3,
+        min_tier: 'plus' as const,
         enabled: true,
         sort_order: 2,
       },
@@ -100,6 +103,7 @@ export async function getModels(): Promise<AIModel[]> {
         input_price: 2,
         output_price: 8,
         free_daily_quota: 5,
+        min_tier: 'lite' as const,
         enabled: true,
         sort_order: 3,
       },
@@ -578,4 +582,181 @@ export async function getUsageSummary(): Promise<{
     total_cost: Math.round(totalCost * 10000) / 10000,
     recent_models: Array.from(modelSet).slice(0, 5),
   };
+}
+
+// ============================================================
+// 会员系统（Lite / Plus / Pro / Max）
+// ============================================================
+
+export type MembershipTier = 'free' | 'lite' | 'plus' | 'pro' | 'max';
+
+export const TIER_ORDER: Record<MembershipTier, number> = {
+  free: 0,
+  lite: 1,
+  plus: 2,
+  pro: 3,
+  max: 4,
+};
+
+export const TIER_INFO: Record<MembershipTier, { name: string; priceMonthly: number; priceYearly: number; grantedPoints: number; color: string; perks: string[] }> = {
+  free: {
+    name: '免费用户',
+    priceMonthly: 0,
+    priceYearly: 0,
+    grantedPoints: 0,
+    color: 'slate',
+    perks: ['无法使用 AI 研智助手'],
+  },
+  lite: {
+    name: 'Lite 会员',
+    priceMonthly: 19,
+    priceYearly: 128,
+    grantedPoints: 5000,
+    color: 'blue',
+    perks: ['解锁 7 个基础 AI 模型', '每月赠送 5000 研点', '每日免费额度', '基础 API 调用'],
+  },
+  plus: {
+    name: 'Plus 会员',
+    priceMonthly: 39,
+    priceYearly: 268,
+    grantedPoints: 15000,
+    color: 'purple',
+    perks: ['解锁全部 10 个 AI 模型', '每月赠送 15000 研点', '更高每日免费额度', '优先 API 调用'],
+  },
+  pro: {
+    name: 'Pro 会员',
+    priceMonthly: 79,
+    priceYearly: 588,
+    grantedPoints: 40000,
+    color: 'amber',
+    perks: ['解锁全部 12 个模型含 R1 推理', '每月赠送 40000 研点', '最高优先级', 'API 高并发'],
+  },
+  max: {
+    name: 'Max 会员',
+    priceMonthly: 128,
+    priceYearly: 998,
+    grantedPoints: 80000,
+    color: 'rose',
+    perks: ['全部模型无限制', '每月赠送 80000 研点', '最高优先级', '专属客服通道'],
+  },
+};
+
+/**
+ * 检查用户会员等级是否满足模型要求
+ */
+export function canUseModel(userTier: MembershipTier, model: AIModel): boolean {
+  return TIER_ORDER[userTier] >= TIER_ORDER[model.min_tier];
+}
+
+/**
+ * 判断会员是否有效（未过期）
+ */
+export function isMembershipActive(tier: MembershipTier, expiresAt?: string | null): boolean {
+  if (tier === 'free') return false;
+  if (!expiresAt) return false;
+  return new Date(expiresAt).getTime() > Date.now();
+}
+
+export interface AIMembershipOrder {
+  id: string;
+  tier: MembershipTier;
+  period: 'monthly' | 'yearly';
+  yuan: number;
+  granted_points: number;
+  status: 'pending' | 'confirmed' | 'rejected';
+  note: string | null;
+  created_at: string;
+  confirmed_at: string | null;
+}
+
+/**
+ * 创建会员订单
+ */
+export async function createMembershipOrder(
+  tier: Exclude<MembershipTier, 'free'>,
+  period: 'monthly' | 'yearly'
+): Promise<{ order: AIMembershipOrder | null; ok: boolean }> {
+  const info = TIER_INFO[tier];
+  const yuan = period === 'monthly' ? info.priceMonthly : info.priceYearly;
+
+  if (!isCloudEnabled || !supabase) {
+    return { order: null, ok: true };
+  }
+
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error('未登录');
+
+  const { data, error } = await supabase
+    .from('ai_membership_orders')
+    .insert({
+      user_id: userData.user.id,
+      tier,
+      period,
+      yuan,
+      granted_points: info.grantedPoints,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { order: data as AIMembershipOrder, ok: true };
+}
+
+/**
+ * 查询本人会员订单
+ */
+export async function listMyMembershipOrders(limit = 20): Promise<AIMembershipOrder[]> {
+  if (!isCloudEnabled || !supabase) return [];
+
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return [];
+
+  const { data, error } = await supabase
+    .from('ai_membership_orders')
+    .select('*')
+    .eq('user_id', userData.user.id)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data as AIMembershipOrder[];
+}
+
+/**
+ * 管理员查询全部会员订单
+ */
+export async function listAllMembershipOrders(
+  status?: 'pending' | 'confirmed' | 'rejected'
+): Promise<(AIMembershipOrder & { email?: string })[]> {
+  if (!isCloudEnabled || !supabase) return [];
+
+  let query = supabase.from('ai_membership_orders').select('*, profiles(email)');
+  if (status) query = query.eq('status', status);
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(100);
+
+  if (error) throw error;
+  return (data || []).map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    tier: r.tier as MembershipTier,
+    period: r.period as 'monthly' | 'yearly',
+    yuan: Number(r.yuan),
+    granted_points: Number(r.granted_points),
+    status: r.status as AIMembershipOrder['status'],
+    note: (r.note as string | null) || null,
+    created_at: r.created_at as string,
+    confirmed_at: (r.confirmed_at as string | null) || null,
+    email: ((r.profiles as { email?: string } | null)?.email) || '',
+  }));
+}
+
+/**
+ * 管理员确认或驳回会员订单。确认时触发器自动升级 tier + 发放研点。
+ */
+export async function confirmMembershipOrder(id: string, ok: boolean): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  const { error } = await supabase
+    .from('ai_membership_orders')
+    .update({ status: ok ? 'confirmed' : 'rejected' })
+    .eq('id', id);
+  if (error) throw error;
 }

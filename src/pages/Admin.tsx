@@ -5,7 +5,7 @@ import { getProduct, minimumWords, PRODUCTS, purchaseTitle } from '../data/produ
 import { PageHeader, Spinner } from '../components/ui';
 import { fetchAllInquiries, replyInquiry, type Inquiry } from '../lib/inquiries';
 import SurveyAdmin from '../components/SurveyAdmin';
-import { getModels, getUsageSummary, listAllTopupOrders, confirmTopupOrder, type AIModel, type AITopupOrder } from '../lib/ai';
+import { getModels, getUsageSummary, listAllTopupOrders, confirmTopupOrder, listAllMembershipOrders, confirmMembershipOrder, TIER_INFO, type AIModel, type AITopupOrder, type AIMembershipOrder } from '../lib/ai';
 
 export default function Admin() {
   const { profile, loading } = useAuth();
@@ -23,6 +23,7 @@ export default function Admin() {
   const [aiModels, setAiModels] = useState<AIModel[]>([]);
   const [aiSummary, setAiSummary] = useState<{ total_calls: number; total_cost: number; recent_models: string[] }>({ total_calls: 0, total_cost: 0, recent_models: [] });
   const [topupOrders, setTopupOrders] = useState<(AITopupOrder & { email?: string })[]>([]);
+  const [membershipOrders, setMembershipOrders] = useState<(AIMembershipOrder & { email?: string })[]>([]);
 
   useEffect(() => {
     if (tab === 'inquiry' && profile?.role === 'admin') {
@@ -32,6 +33,7 @@ export default function Admin() {
       getModels().then(setAiModels);
       getUsageSummary().then(setAiSummary);
       listAllTopupOrders('pending').then(setTopupOrders).catch(() => {});
+      listAllMembershipOrders('pending').then(setMembershipOrders).catch(() => {});
     }
   }, [tab, profile]);
 
@@ -271,6 +273,7 @@ export default function Admin() {
                       <th className="px-4 py-3 text-right font-medium text-slate-600">输入价格</th>
                       <th className="px-4 py-3 text-right font-medium text-slate-600">输出价格</th>
                       <th className="px-4 py-3 text-center font-medium text-slate-600">每日免费</th>
+                      <th className="px-4 py-3 text-center font-medium text-slate-600">最低会员</th>
                       <th className="px-4 py-3 text-center font-medium text-slate-600">启用</th>
                     </tr>
                   </thead>
@@ -288,6 +291,17 @@ export default function Admin() {
                         <td className="px-4 py-3 text-right font-mono text-xs text-slate-600">{m.output_price}</td>
                         <td className="px-4 py-3 text-center text-slate-600">{m.free_daily_quota}</td>
                         <td className="px-4 py-3 text-center">
+                          {m.min_tier === 'lite' ? (
+                            <span className="badge bg-blue-50 text-blue-600">Lite</span>
+                          ) : m.min_tier === 'plus' ? (
+                            <span className="badge bg-purple-50 text-purple-600">Plus</span>
+                          ) : m.min_tier === 'pro' ? (
+                            <span className="badge bg-amber-50 text-amber-600">Pro</span>
+                          ) : (
+                            <span className="badge bg-rose-50 text-rose-600">Max</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
                           {m.enabled ? (
                             <span className="badge bg-emerald-50 text-emerald-600">启用</span>
                           ) : (
@@ -302,6 +316,66 @@ export default function Admin() {
               <div className="border-t border-slate-100 bg-slate-50 px-6 py-3 text-xs text-slate-400">
                 模型配置存储在 Supabase ai_models 表中，如需新增模型或调整定价请在 Supabase SQL Editor 中操作。
               </div>
+            </div>
+
+            {/* 会员订单确认 */}
+            <div className="card overflow-hidden">
+              <div className="border-b border-slate-100 px-6 py-4">
+                <h3 className="text-base font-semibold text-slate-800">会员开通确认</h3>
+                <p className="text-xs text-slate-400">核验用户付款到账后点确认，会员等级自动开通并发放赠送研点；驳回则订单关闭。</p>
+              </div>
+              {membershipOrders.length === 0 ? (
+                <div className="p-8 text-center text-sm text-slate-400">暂无待确认的会员订单。</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-slate-600">用户邮箱</th>
+                        <th className="px-4 py-3 text-left font-medium text-slate-600">套餐</th>
+                        <th className="px-4 py-3 text-right font-medium text-slate-600">金额</th>
+                        <th className="px-4 py-3 text-right font-medium text-slate-600">赠送研点</th>
+                        <th className="px-4 py-3 text-left font-medium text-slate-600">提交时间</th>
+                        <th className="px-4 py-3 text-center font-medium text-slate-600">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {membershipOrders.map((o) => (
+                        <tr key={o.id} className="border-t border-slate-100 hover:bg-slate-50">
+                          <td className="px-4 py-3 text-slate-700">{o.email || '-'}</td>
+                          <td className="px-4 py-3">
+                            <span className="badge bg-brand-50 text-brand-700">{TIER_INFO[o.tier].name}</span>
+                            <span className="ml-1 text-xs text-slate-400">{o.period === 'monthly' ? '月付' : '年付'}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-slate-700">{o.yuan} 元</td>
+                          <td className="px-4 py-3 text-right text-slate-700">{o.granted_points.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-slate-500">{new Date(o.created_at).toLocaleString('zh-CN')}</td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              className="btn-primary !py-1 !text-xs mr-2"
+                              onClick={async () => {
+                                await confirmMembershipOrder(o.id, true);
+                                setMembershipOrders(await listAllMembershipOrders('pending'));
+                              }}
+                            >
+                              确认到账
+                            </button>
+                            <button
+                              className="btn-outline !py-1 !text-xs"
+                              onClick={async () => {
+                                await confirmMembershipOrder(o.id, false);
+                                setMembershipOrders(await listAllMembershipOrders('pending'));
+                              }}
+                            >
+                              驳回
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             {/* 充值确认 */}

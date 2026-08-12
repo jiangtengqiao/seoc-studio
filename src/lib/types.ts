@@ -36,6 +36,8 @@ export interface Profile {
   wechat_bound: boolean;
   linked_accounts: string[];
   created_at: string;
+  membership_tier?: 'free' | 'lite' | 'plus' | 'pro' | 'max';
+  membership_expires_at?: string | null;
 }
 
 export interface Issue {

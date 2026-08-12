@@ -35,7 +35,9 @@ function localProfile(userId: string): Profile | null {
     qq_bound: false,
     wechat_bound: false,
     linked_accounts: [],
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    membership_tier: 'free',
+    membership_expires_at: null
   };
 }
 
@@ -62,7 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         qq_bound: false,
         wechat_bound: false,
         linked_accounts: [],
-        created_at: user.created_at
+        created_at: user.created_at,
+        membership_tier: 'free',
+        membership_expires_at: null
       }
     );
   }, []);

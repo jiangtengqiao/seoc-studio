@@ -7,6 +7,7 @@ import {
   getProviderApiKey,
   calculateCost,
   estimateTokens,
+  canUseModelWithTier,
   type ModelConfig,
   type ChatMessage,
   type StreamChunk,
@@ -99,6 +100,28 @@ Deno.serve(async (req) => {
       );
     }
     const model = modelData as unknown as ModelConfig;
+
+    // 3.5 会员等级校验（API 调用同样受会员门槛限制）
+    const { data: profileData } = await adminClient
+      .from('profiles')
+      .select('membership_tier, membership_expires_at')
+      .eq('id', userId)
+      .maybeSingle();
+    const userTier = (profileData?.membership_tier as string) || 'free';
+    const membershipExpiresAt = (profileData?.membership_expires_at as string) || null;
+    const tierCheck = canUseModelWithTier(userTier, membershipExpiresAt, model.min_tier || 'lite');
+    if (!tierCheck.ok) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: tierCheck.reason,
+            type: 'membership_required',
+            code: 'membership_required',
+          },
+        }),
+        { status: 403, headers: jsonHeaders }
+      );
+    }
 
     // 4. 查询余额（API 调用无免费额度）
     const { data: creditsData } = await adminClient

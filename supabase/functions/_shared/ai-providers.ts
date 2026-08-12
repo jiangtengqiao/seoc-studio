@@ -16,7 +16,41 @@ export interface ModelConfig {
   input_price: number;   // 每千 input token 研点
   output_price: number;  // 每千 output token 研点
   free_daily_quota: number;
+  min_tier: 'lite' | 'plus' | 'pro' | 'max';
   enabled: boolean;
+}
+
+// 会员等级排序（free < lite < plus < pro < max）
+export const TIER_ORDER: Record<string, number> = {
+  free: 0,
+  lite: 1,
+  plus: 2,
+  pro: 3,
+  max: 4,
+};
+
+/**
+ * 校验用户会员等级是否达到模型要求（服务端强制校验）
+ */
+export function canUseModelWithTier(
+  userTier: string,
+  membershipExpiresAt: string | null,
+  modelMinTier: string
+): { ok: boolean; reason?: string } {
+  if (modelMinTier === 'free') return { ok: true };
+  if (!userTier || userTier === 'free') {
+    return { ok: false, reason: `需开通 ${modelMinTier.toUpperCase()} 及以上会员` };
+  }
+  // 会员过期则视为 free
+  if (membershipExpiresAt && new Date(membershipExpiresAt).getTime() <= Date.now()) {
+    return { ok: false, reason: '会员已过期，请续费' };
+  }
+  const userLevel = TIER_ORDER[userTier] ?? 0;
+  const modelLevel = TIER_ORDER[modelMinTier] ?? 0;
+  if (userLevel < modelLevel) {
+    return { ok: false, reason: `该模型需要 ${modelMinTier.toUpperCase()} 及以上会员` };
+  }
+  return { ok: true };
 }
 
 export interface TokenUsage {

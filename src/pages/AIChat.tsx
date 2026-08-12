@@ -9,9 +9,14 @@ import {
   sendMessage,
   getModels,
   getBalance,
+  canUseModel,
+  isMembershipActive,
+  TIER_ORDER,
+  TIER_INFO,
   type AIModel,
   type AIBalance,
   type ChatMessage,
+  type MembershipTier,
 } from '../lib/ai';
 
 interface Message {
@@ -32,6 +37,7 @@ export default function AIChat() {
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState(0);
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [interruptNotice, setInterruptNotice] = useState<{
     reason: string;
     tokensUsed: number;
@@ -41,6 +47,29 @@ export default function AIChat() {
   } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const modelDropdownRef = useRef<HTMLDivElement>(null);
+
+  // 会员等级信息
+  const userTier: MembershipTier = (profile?.membership_tier as MembershipTier) || 'free';
+  const membershipActive = isMembershipActive(userTier, profile?.membership_expires_at);
+  const effectiveTier: MembershipTier = membershipActive ? userTier : 'free';
+  const canUseAI = effectiveTier !== 'free';
+  // 等级中文名（用于显示）
+  const tierNameMap: Record<MembershipTier, string> = {
+    free: '免费',
+    lite: 'Lite',
+    plus: 'Plus',
+    pro: 'Pro',
+    max: 'Max',
+  };
+  // 等级徽章配色
+  const tierBadgeMap: Record<MembershipTier, string> = {
+    free: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+    lite: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    plus: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+    pro: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+    max: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+  };
 
   // 初始加载
   useEffect(() => {
@@ -52,10 +81,30 @@ export default function AIChat() {
     })();
   }, []);
 
+  // 会员等级或模型变化时，自动切换到第一个可用的模型
+  useEffect(() => {
+    if (!models.length) return;
+    const current = models.find((x) => x.id === selectedModel);
+    if (current && canUseModel(effectiveTier, current)) return;
+    const firstAvailable = models.find((x) => canUseModel(effectiveTier, x));
+    if (firstAvailable) setSelectedModel(firstAvailable.id);
+  }, [models, effectiveTier, selectedModel]);
+
   // 自动滚动到底部
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // 点击外部关闭模型下拉
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target as Node)) {
+        setModelDropdownOpen(false);
+      }
+    };
+    if (modelDropdownOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [modelDropdownOpen]);
 
   const currentModel = models.find((m) => m.id === selectedModel);
 
@@ -66,9 +115,24 @@ export default function AIChat() {
     [lang]
   );
 
+  // 厂商中文名与配色
+  const providerInfo: Record<string, { name: string; badge: string }> = {
+    bytedance: { name: '豆包', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
+    alibaba: { name: '通义千问', badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
+    zhipu: { name: '智谱', badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
+    deepseek: { name: 'DeepSeek', badge: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
+  };
+
   const handleSend = async () => {
     const text = input.trim();
     if (!text || streaming || !selectedModel) return;
+
+    // 门槛检查：未达 Lite 会员不能使用
+    if (!canUseAI) return;
+
+    // 模型等级检查
+    const model = models.find((x) => x.id === selectedModel);
+    if (model && !canUseModel(effectiveTier, model)) return;
 
     // 预检余额
     if (balance.balance <= 0 && balance.free_remaining <= 0) {
@@ -174,6 +238,78 @@ export default function AIChat() {
     }
   };
 
+  // 门槛拦截：未达 Lite 会员，显示购买引导
+  if (!canUseAI) {
+    return (
+      <div className="container-x py-12">
+        <Reveal>
+          <div className="mx-auto max-w-2xl">
+            <div className="card overflow-hidden">
+              <div className="panel-strip" />
+              <div className="p-8 text-center">
+                <span className="mark-r mb-4 inline-block text-6xl font-bold opacity-30">R</span>
+                <h1 className="text-2xl font-bold text-brand-950">研智助手需要会员资格</h1>
+                <p className="mt-3 text-sm text-slate-500">
+                  AI 研智助手是付费功能。至少需要 <span className="font-semibold text-blue-600">Lite 会员</span> 才能使用 AI 模型对话与 API。
+                </p>
+
+                {/* 当前会员状态 */}
+                <div className="mt-6 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 dark:border-slate-700 dark:bg-slate-800">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">当前等级</span>
+                  <span className={`badge px-2 py-0.5 text-xs font-medium ${tierBadgeMap[userTier]}`}>
+                    {tierNameMap[userTier]}
+                  </span>
+                  {!membershipActive && userTier !== 'free' && (
+                    <span className="text-xs text-amber-600">（已过期）</span>
+                  )}
+                </div>
+
+                {/* 会员档位展示 */}
+                <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {(['lite', 'plus', 'pro', 'max'] as const).map((tier) => {
+                    const info = TIER_INFO[tier];
+                    return (
+                      <div key={tier} className="card relative p-5 text-left transition hover:border-brand-400 hover:shadow-lg">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className={`badge px-2 py-0.5 text-xs font-medium ${tierBadgeMap[tier]}`}>
+                            {info.name}
+                          </span>
+                        </div>
+                        <p className="text-2xl font-bold text-brand-700">¥{info.priceMonthly}<span className="text-xs font-normal text-slate-400">/月</span></p>
+                        <p className="mt-1 text-xs text-slate-500">年付 ¥{info.priceYearly}（约 {Math.round(info.priceYearly / info.priceMonthly / 12 * 10) / 10} 折）</p>
+                        <ul className="mt-3 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+                          {info.perks.map((perk, i) => (
+                            <li key={i} className="flex items-start gap-1">
+                              <svg className="mt-0.5 h-3 w-3 shrink-0 text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                              <span>{perk}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-8 flex justify-center gap-3">
+                  <Link to="/ai/credits" className="btn-primary">
+                    前往购买会员
+                  </Link>
+                  <Link to="/legal/ai-service-agreement" className="btn-ghost">
+                    查看服务协议
+                  </Link>
+                </div>
+
+                <p className="mt-4 text-xs text-slate-400">
+                  购买会员后管理员核验到账即自动开通，无需额外操作。
+                </p>
+              </div>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
       {/* 顶部栏 */}
@@ -187,21 +323,100 @@ export default function AIChat() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {/* 模型选择 */}
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="input w-48 text-sm"
-              disabled={streaming}
-            >
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {getModelName(m)} ({m.input_price}/{m.output_price})
-                </option>
-              ))}
-            </select>
+            {/* 模型选择 - 自定义下拉 */}
+            <div className="relative" ref={modelDropdownRef}>
+              <button
+                type="button"
+                onClick={() => !streaming && setModelDropdownOpen(!modelDropdownOpen)}
+                disabled={streaming}
+                className="ai-model-trigger flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm transition hover:border-brand-400 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800"
+              >
+                {currentModel && (
+                  <>
+                    <span className={`badge px-1.5 py-0.5 text-[10px] font-medium ${providerInfo[currentModel.provider]?.badge || 'bg-slate-100 text-slate-600'}`}>
+                      {providerInfo[currentModel.provider]?.name || currentModel.provider}
+                    </span>
+                    <span className="font-medium text-slate-800 dark:text-slate-100">{getModelName(currentModel)}</span>
+                  </>
+                )}
+                <svg className={`h-4 w-4 shrink-0 text-slate-400 transition ${modelDropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+
+              {/* 下拉面板 */}
+              {modelDropdownOpen && (
+                <div className="ai-model-dropdown absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                  <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-700">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">选择 AI 模型</p>
+                    <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">括号内为每千 token 研点价（输入/输出）</p>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {models.map((m) => {
+                      const locked = !canUseModel(effectiveTier, m);
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          disabled={locked}
+                          onClick={() => {
+                            setSelectedModel(m.id);
+                            setModelDropdownOpen(false);
+                          }}
+                          className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition ${
+                            locked
+                              ? 'cursor-not-allowed opacity-50'
+                              : 'hover:bg-brand-50 dark:hover:bg-slate-700'
+                          } ${
+                            m.id === selectedModel ? 'bg-brand-50 dark:bg-slate-700' : ''
+                          }`}
+                        >
+                          <span className={`badge mt-0.5 shrink-0 px-1.5 py-0.5 text-[10px] font-medium ${providerInfo[m.provider]?.badge || 'bg-slate-100 text-slate-600'}`}>
+                            {providerInfo[m.provider]?.name || m.provider}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+                              {getModelName(m)}
+                              {locked && (
+                                <span className="ml-1.5 align-middle text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                  需 {TIER_INFO[m.min_tier].name}
+                                </span>
+                              )}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                              <span className="flex items-center gap-1">
+                                <svg className="h-3 w-3 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 000 2h11a1 1 0 100-2H3zM3 9a1 1 0 000 2h7a1 1 0 100-2H3zM3 14a1 1 0 100 2h4a1 1 0 100-2H3z" /></svg>
+                                输入 {m.input_price}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <svg className="h-3 w-3 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M17 4a1 1 0 000 2H6a1 1 0 100-2h11zM17 9a1 1 0 000 2h-7a1 1 0 110-2h7zM17 14a1 1 0 100 2H6a1 1 0 110-2h11z" /></svg>
+                                输出 {m.output_price}
+                              </span>
+                              {m.free_daily_quota > 0 && (
+                                <span className="text-emerald-600 dark:text-emerald-400">免费 {m.free_daily_quota}/天</span>
+                              )}
+                            </div>
+                          </div>
+                          {locked ? (
+                            <svg className="mt-1 h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            m.id === selectedModel && (
+                              <svg className="mt-1 h-4 w-4 shrink-0 text-brand-600" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
             {/* 余额 */}
-            <Link to="/ai/credits" className="badge bg-brand-50 text-brand-700 hover:bg-brand-100 transition">
+            <Link to="/ai/credits" className="badge bg-brand-50 text-brand-700 hover:bg-brand-100 transition dark:bg-brand-900/30 dark:text-brand-300">
               {t('ai.credits.name')} {balance.balance.toLocaleString()} | {t('ai.chat.freeRemaining')} {balance.free_remaining}
             </Link>
           </div>
@@ -352,8 +567,9 @@ export default function AIChat() {
           <p className="mt-2 text-center text-xs text-slate-400">
             {t('ai.chat.footerNote')}
             {currentModel && (
-              <span className="ml-2">
-                {getModelName(currentModel)} | {currentModel.input_price}/{currentModel.output_price} {t('ai.credits.name')}/1K token
+              <span className="ml-2 text-slate-500 dark:text-slate-400">
+                {getModelName(currentModel)} · 输入 {currentModel.input_price} 研点/千token · 输出 {currentModel.output_price} 研点/千token
+                {currentModel.free_daily_quota > 0 && ` · 每日免费 ${currentModel.free_daily_quota} 次`}
               </span>
             )}
           </p>

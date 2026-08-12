@@ -1,6 +1,13 @@
 -- SEOC Studio AI Platform (研智助手) 数据库脚本
 -- 可重复执行。在 Supabase SQL Editor 中整体执行一次即可。
 -- 积分体系：研点 (Research Points)
+-- 会员体系：Lite / Plus / Pro / Max（双轨制：会员是使用门槛，研点是消耗计量）
+
+-- ============================================================
+-- 0. profiles 扩展 — 增加会员等级字段
+-- ============================================================
+alter table profiles add column if not exists membership_tier text not null default 'free' check (membership_tier in ('free','lite','plus','pro','max'));
+alter table profiles add column if not exists membership_expires_at timestamptz;
 
 -- ============================================================
 -- 1. ai_models — 模型注册表（管理员维护）
@@ -12,6 +19,7 @@ create table if not exists ai_models (
   input_price numeric(10,6) not null default 0,
   output_price numeric(10,6) not null default 0,
   free_daily_quota int not null default 0,
+  min_tier text not null default 'lite' check (min_tier in ('lite','plus','pro','max')),
   enabled boolean not null default true,
   sort_order int not null default 0,
   created_at timestamptz not null default now(),
@@ -172,35 +180,55 @@ create index if not exists idx_ai_api_keys_hash on ai_api_keys(key_hash);
 -- ============================================================
 -- 初始模型数据
 -- ============================================================
-insert into ai_models (id, provider, display_name, input_price, output_price, free_daily_quota, enabled, sort_order)
+insert into ai_models (id, provider, display_name, input_price, output_price, free_daily_quota, min_tier, enabled, sort_order)
 values
+  -- 豆包（字节跳动）
   ('doubao-pro-32k', 'bytedance',
-   '{"zh-CN":"豆包 Pro","en":"Doubao Pro","ja":"Doubao Pro","ko":"Doubao Pro","fr":"Doubao Pro","de":"Doubao Pro","es":"Doubao Pro","ru":"Doubao Pro","zh-TW":"豆包 Pro"}',
-   4.000000, 12.000000, 5, true, 1),
-  ('qwen-max', 'alibaba',
-   '{"zh-CN":"通义千问 Max","en":"Qwen Max","ja":"Qwen Max","ko":"Qwen Max","fr":"Qwen Max","de":"Qwen Max","es":"Qwen Max","ru":"Qwen Max","zh-TW":"通義千問 Max"}',
-   2.000000, 6.000000, 5, true, 2),
+   '{"zh-CN":"豆包 Pro 32K","en":"Doubao Pro 32K","ja":"Doubao Pro 32K","ko":"Doubao Pro 32K","fr":"Doubao Pro 32K","de":"Doubao Pro 32K","es":"Doubao Pro 32K","ru":"Doubao Pro 32K","zh-TW":"豆包 Pro 32K"}',
+   4.000000, 12.000000, 5, 'lite', true, 1),
+  ('doubao-lite-32k', 'bytedance',
+   '{"zh-CN":"豆包 Lite 32K","en":"Doubao Lite 32K","ja":"Doubao Lite 32K","ko":"Doubao Lite 32K","fr":"Doubao Lite 32K","de":"Doubao Lite 32K","es":"Doubao Lite 32K","ru":"Doubao Lite 32K","zh-TW":"豆包 Lite 32K"}',
+   0.400000, 1.200000, 20, 'lite', true, 2),
+  -- 通义千问（阿里云）
   ('qwen-turbo', 'alibaba',
    '{"zh-CN":"通义千问 Turbo","en":"Qwen Turbo","ja":"Qwen Turbo","ko":"Qwen Turbo","fr":"Qwen Turbo","de":"Qwen Turbo","es":"Qwen Turbo","ru":"Qwen Turbo","zh-TW":"通義千問 Turbo"}',
-   0.500000, 1.500000, 10, true, 3),
-  ('glm-4', 'zhipu',
-   '{"zh-CN":"智谱 GLM-4","en":"Zhipu GLM-4","ja":"Zhipu GLM-4","ko":"Zhipu GLM-4","fr":"Zhipu GLM-4","de":"Zhipu GLM-4","es":"Zhipu GLM-4","ru":"Zhipu GLM-4","zh-TW":"智譜 GLM-4"}',
-   5.000000, 15.000000, 3, true, 4),
+   0.500000, 1.500000, 10, 'lite', true, 3),
+  ('qwen-plus', 'alibaba',
+   '{"zh-CN":"通义千问 Plus","en":"Qwen Plus","ja":"Qwen Plus","ko":"Qwen Plus","fr":"Qwen Plus","de":"Qwen Plus","es":"Qwen Plus","ru":"Qwen Plus","zh-TW":"通義千問 Plus"}',
+   0.800000, 2.000000, 5, 'lite', true, 4),
+  ('qwen-max', 'alibaba',
+   '{"zh-CN":"通义千问 Max","en":"Qwen Max","ja":"Qwen Max","ko":"Qwen Max","fr":"Qwen Max","de":"Qwen Max","es":"Qwen Max","ru":"Qwen Max","zh-TW":"通義千問 Max"}',
+   2.000000, 6.000000, 3, 'plus', true, 5),
+  ('qwen-long', 'alibaba',
+   '{"zh-CN":"通义千问 Long","en":"Qwen Long","ja":"Qwen Long","ko":"Qwen Long","fr":"Qwen Long","de":"Qwen Long","es":"Qwen Long","ru":"Qwen Long","zh-TW":"通義千問 Long"}',
+   0.700000, 2.000000, 0, 'plus', true, 6),
+  -- 智谱
   ('glm-4-flash', 'zhipu',
    '{"zh-CN":"智谱 GLM-4 Flash","en":"Zhipu GLM-4 Flash","ja":"Zhipu GLM-4 Flash","ko":"Zhipu GLM-4 Flash","fr":"Zhipu GLM-4 Flash","de":"Zhipu GLM-4 Flash","es":"Zhipu GLM-4 Flash","ru":"Zhipu GLM-4 Flash","zh-TW":"智譜 GLM-4 Flash"}',
-   0.000000, 0.000000, 999, true, 5),
+   0.000000, 0.000000, 999, 'lite', true, 7),
+  ('glm-4-air', 'zhipu',
+   '{"zh-CN":"智谱 GLM-4 Air","en":"Zhipu GLM-4 Air","ja":"Zhipu GLM-4 Air","ko":"Zhipu GLM-4 Air","fr":"Zhipu GLM-4 Air","de":"Zhipu GLM-4 Air","es":"Zhipu GLM-4 Air","ru":"Zhipu GLM-4 Air","zh-TW":"智譜 GLM-4 Air"}',
+   0.500000, 0.500000, 5, 'lite', true, 8),
+  ('glm-4', 'zhipu',
+   '{"zh-CN":"智谱 GLM-4","en":"Zhipu GLM-4","ja":"Zhipu GLM-4","ko":"Zhipu GLM-4","fr":"Zhipu GLM-4","de":"Zhipu GLM-4","es":"Zhipu GLM-4","ru":"Zhipu GLM-4","zh-TW":"智譜 GLM-4"}',
+   5.000000, 15.000000, 0, 'plus', true, 9),
+  ('glm-4-plus', 'zhipu',
+   '{"zh-CN":"智谱 GLM-4 Plus","en":"Zhipu GLM-4 Plus","ja":"Zhipu GLM-4 Plus","ko":"Zhipu GLM-4 Plus","fr":"Zhipu GLM-4 Plus","de":"Zhipu GLM-4 Plus","es":"Zhipu GLM-4 Plus","ru":"Zhipu GLM-4 Plus","zh-TW":"智譜 GLM-4 Plus"}',
+   8.000000, 24.000000, 0, 'pro', true, 10),
+  -- DeepSeek
   ('deepseek-chat', 'deepseek',
-   '{"zh-CN":"DeepSeek Chat","en":"DeepSeek Chat","ja":"DeepSeek Chat","ko":"DeepSeek Chat","fr":"DeepSeek Chat","de":"DeepSeek Chat","es":"DeepSeek Chat","ru":"DeepSeek Chat","zh-TW":"DeepSeek Chat"}',
-   2.000000, 8.000000, 5, true, 6),
+   '{"zh-CN":"DeepSeek Chat (V3)","en":"DeepSeek Chat (V3)","ja":"DeepSeek Chat (V3)","ko":"DeepSeek Chat (V3)","fr":"DeepSeek Chat (V3)","de":"DeepSeek Chat (V3)","es":"DeepSeek Chat (V3)","ru":"DeepSeek Chat (V3)","zh-TW":"DeepSeek Chat (V3)"}',
+   2.000000, 8.000000, 5, 'lite', true, 11),
   ('deepseek-reasoner', 'deepseek',
    '{"zh-CN":"DeepSeek Reasoner (R1)","en":"DeepSeek Reasoner (R1)","ja":"DeepSeek Reasoner (R1)","ko":"DeepSeek Reasoner (R1)","fr":"DeepSeek Reasoner (R1)","de":"DeepSeek Reasoner (R1)","es":"DeepSeek Reasoner (R1)","ru":"DeepSeek Reasoner (R1)","zh-TW":"DeepSeek Reasoner (R1)"}',
-   8.000000, 24.000000, 2, true, 7)
+   8.000000, 24.000000, 2, 'pro', true, 12)
 on conflict (id) do update set
   provider = excluded.provider,
   display_name = excluded.display_name,
   input_price = excluded.input_price,
   output_price = excluded.output_price,
   free_daily_quota = excluded.free_daily_quota,
+  min_tier = excluded.min_tier,
   enabled = excluded.enabled,
   sort_order = excluded.sort_order,
   updated_at = now();
@@ -259,3 +287,77 @@ drop trigger if exists on_ai_topup_order_confirm on ai_topup_orders;
 create trigger on_ai_topup_order_confirm
   before update on ai_topup_orders
   for each row execute function confirm_ai_topup_order();
+
+-- ============================================================
+-- 8. ai_membership_orders — 会员订单（人工确认制）
+-- ============================================================
+create table if not exists ai_membership_orders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  tier text not null check (tier in ('lite','plus','pro','max')),
+  period text not null check (period in ('monthly','yearly')),
+  yuan numeric(10,2) not null,
+  granted_points numeric(12,4) not null default 0,
+  status text not null default 'pending' check (status in ('pending','confirmed','rejected')),
+  note text,
+  created_at timestamptz not null default now(),
+  confirmed_at timestamptz
+);
+
+alter table ai_membership_orders enable row level security;
+
+drop policy if exists "ai_membership_orders self read" on ai_membership_orders;
+drop policy if exists "ai_membership_orders self insert" on ai_membership_orders;
+drop policy if exists "ai_membership_orders admin write" on ai_membership_orders;
+create policy "ai_membership_orders self read" on ai_membership_orders for select using (auth.uid() = user_id or is_admin());
+create policy "ai_membership_orders self insert" on ai_membership_orders for insert with check (auth.uid() = user_id);
+create policy "ai_membership_orders admin write" on ai_membership_orders for all using (is_admin()) with check (is_admin());
+
+create index if not exists idx_ai_membership_orders_user on ai_membership_orders(user_id, created_at desc);
+create index if not exists idx_ai_membership_orders_status on ai_membership_orders(status);
+
+-- 触发器：会员订单确认时自动升级 tier + 发放研点
+create or replace function confirm_ai_membership_order()
+returns trigger language plpgsql security definer as
+$$
+begin
+  if (new.status = 'confirmed' and (old.status is distinct from 'confirmed')) then
+    -- 升级会员等级（取更高等级）
+    update profiles set
+      membership_tier = case
+        when (new.tier = 'max') then 'max'
+        when (new.tier = 'pro' and (profiles.membership_tier in ('free','lite','plus'))) then 'pro'
+        when (new.tier = 'plus' and (profiles.membership_tier in ('free','lite'))) then 'plus'
+        when (new.tier = 'lite' and profiles.membership_tier = 'free') then 'lite'
+        else profiles.membership_tier
+      end,
+      membership_expires_at = case
+        when new.period = 'monthly' then (now() + interval '1 month')::timestamptz
+        when new.period = 'yearly' then (now() + interval '1 year')::timestamptz
+        else (now() + interval '1 month')::timestamptz
+      end
+    where id = new.user_id;
+
+    -- 发放赠送研点
+    if (new.granted_points > 0) then
+      insert into ai_credits (user_id, balance, free_remaining, free_reset_date)
+      values (new.user_id, new.granted_points, 0, current_date)
+      on conflict (user_id) do update set
+        balance = ai_credits.balance + new.granted_points,
+        updated_at = now();
+
+      insert into ai_transactions (user_id, amount, type, ref_id, note)
+      values (new.user_id, new.granted_points, 'purchase', new.id::text,
+              '购买 ' || new.tier || ' 会员 ' || new.period || '，赠送 ' || new.granted_points || ' 研点');
+    end if;
+
+    new.confirmed_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_ai_membership_order_confirm on ai_membership_orders;
+create trigger on_ai_membership_order_confirm
+  before update on ai_membership_orders
+  for each row execute function confirm_ai_membership_order();

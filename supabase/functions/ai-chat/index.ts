@@ -7,6 +7,7 @@ import {
   calculateCost,
   estimateTokens,
   shouldResetFreeQuota,
+  canUseModelWithTier,
   type ModelConfig,
   type ChatMessage,
   type StreamChunk,
@@ -70,6 +71,22 @@ Deno.serve(async (req) => {
       });
     }
     const model = modelData as unknown as ModelConfig;
+
+    // 3.5 会员等级校验（服务端强制）
+    const { data: profileData } = await adminClient
+      .from('profiles')
+      .select('membership_tier, membership_expires_at')
+      .eq('id', userId)
+      .maybeSingle();
+    const userTier = (profileData?.membership_tier as string) || 'free';
+    const membershipExpiresAt = (profileData?.membership_expires_at as string) || null;
+    const tierCheck = canUseModelWithTier(userTier, membershipExpiresAt, model.min_tier || 'lite');
+    if (!tierCheck.ok) {
+      return new Response(
+        JSON.stringify({ error: tierCheck.reason, code: 'membership_required' }),
+        { status: 403, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // 4. 查询用户余额与免费额度
     let { data: creditsData } = await adminClient

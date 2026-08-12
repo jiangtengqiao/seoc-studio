@@ -584,3 +584,23 @@ body {
 .dark .ai-streaming-cursor {
   background: #60a5fa;
 }
+
+/* ===== AI 模型选择下拉 ===== */
+.ai-model-dropdown {
+  animation: ai-dropdown-in 0.15s ease-out;
+}
+
+@keyframes ai-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-model-trigger {
+  min-width: 12rem;
+}

@@ -9,10 +9,16 @@ import {
   getUsageLogs,
   createTopupOrder,
   listMyTopupOrders,
+  createMembershipOrder,
+  listMyMembershipOrders,
+  isMembershipActive,
+  TIER_INFO,
   type AIBalance,
   type AITransaction,
   type AIUsageLog,
   type AITopupOrder,
+  type AIMembershipOrder,
+  type MembershipTier,
 } from '../lib/ai';
 
 const TOPUP_PLANS = [
@@ -21,6 +27,8 @@ const TOPUP_PLANS = [
   { yuan: 100, points: 150000, label: '100 元', bonus: '多送 50%' },
 ];
 
+const TIER_LIST: Exclude<MembershipTier, 'free'>[] = ['lite', 'plus', 'pro', 'max'];
+
 export default function AICredits() {
   const { t } = useI18n();
   const { profile } = useAuth();
@@ -28,25 +36,30 @@ export default function AICredits() {
   const [transactions, setTransactions] = useState<AITransaction[]>([]);
   const [usageLogs, setUsageLogs] = useState<AIUsageLog[]>([]);
   const [topupOrders, setTopupOrders] = useState<AITopupOrder[]>([]);
+  const [membershipOrders, setMembershipOrders] = useState<AIMembershipOrder[]>([]);
   const [activeTab, setActiveTab] = useState<'transactions' | 'usage'>('transactions');
   const [showTopup, setShowTopup] = useState(false);
+  const [showMembership, setShowMembership] = useState(false);
   const [topupResult, setTopupResult] = useState<string | null>(null);
+  const [membershipResult, setMembershipResult] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const [b, tx, logs, orders] = await Promise.all([
+    const [b, tx, logs, orders, mOrders] = await Promise.all([
       getBalance(),
       getTransactions(100),
       getUsageLogs(50),
       listMyTopupOrders(),
+      listMyMembershipOrders(),
     ]);
     setBalance(b);
     setTransactions(tx);
     setUsageLogs(logs);
     setTopupOrders(orders);
+    setMembershipOrders(mOrders);
   };
 
   const handleTopup = async (plan: typeof TOPUP_PLANS[0]) => {
@@ -64,9 +77,39 @@ export default function AICredits() {
     }
   };
 
+  const handleMembership = async (tier: Exclude<MembershipTier, 'free'>, period: 'monthly' | 'yearly') => {
+    setMembershipResult(null);
+    try {
+      const { order } = await createMembershipOrder(tier, period);
+      if (order) {
+        setMembershipResult(`会员订单已提交（${TIER_INFO[tier].name} · ${period === 'monthly' ? '月付' : '年付'}，¥${order.yuan}）。请扫描下方收款码完成支付，管理员核验后会员自动开通并发放赠送研点。`);
+      } else {
+        setMembershipResult(`演示模式：已开通 ${TIER_INFO[tier].name}（${period === 'monthly' ? '月' : '年'}）并发放 ${TIER_INFO[tier].grantedPoints.toLocaleString()} 研点。`);
+      }
+      await loadData();
+    } catch (e) {
+      setMembershipResult(`提交失败: ${e}`);
+    }
+  };
+
+  // 当前会员状态
+  const userTier: MembershipTier = (profile?.membership_tier as MembershipTier) || 'free';
+  const membershipActive = isMembershipActive(userTier, profile?.membership_expires_at);
+  const effectiveTier: MembershipTier = membershipActive ? userTier : 'free';
+  const tierBadgeMap: Record<MembershipTier, string> = {
+    free: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+    lite: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    plus: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+    pro: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+    max: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+  };
+
   const totalSpent = transactions
     .filter((tx) => tx.type === 'consumption')
     .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
+  const pendingTopup = topupOrders.filter((o) => o.status === 'pending').length;
+  const pendingMembership = membershipOrders.filter((o) => o.status === 'pending').length;
 
   return (
     <div className="container-x py-8">
@@ -77,11 +120,31 @@ export default function AICredits() {
         </div>
       </Reveal>
 
-      {/* 余额卡片 */}
+      {/* 会员 + 余额状态卡片 */}
       <Reveal>
         <div className="card mb-8 overflow-hidden">
           <div className="panel-strip" />
-          <div className="grid gap-6 p-6 md:grid-cols-3">
+          <div className="grid gap-6 p-6 md:grid-cols-4">
+            <div className="text-center md:col-span-1">
+              <p className="text-sm text-slate-500">会员等级</p>
+              <div className="mt-2">
+                <span className={`badge px-3 py-1 text-sm font-semibold ${tierBadgeMap[userTier]}`}>
+                  {userTier === 'free' ? '免费' : TIER_INFO[userTier].name}
+                </span>
+              </div>
+              {membershipActive && profile?.membership_expires_at ? (
+                <p className="mt-1.5 text-xs text-slate-400">
+                  有效期至 {new Date(profile.membership_expires_at).toLocaleDateString('zh-CN')}
+                </p>
+              ) : userTier !== 'free' ? (
+                <p className="mt-1.5 text-xs text-amber-600">已过期，续费可恢复</p>
+              ) : (
+                <p className="mt-1.5 text-xs text-slate-400">未开通</p>
+              )}
+              {!membershipActive && effectiveTier === 'free' && (
+                <p className="mt-1 text-[11px] text-slate-400">AI 研智助手需 Lite 及以上</p>
+              )}
+            </div>
             <div className="text-center">
               <p className="text-sm text-slate-500">{t('ai.credits.balance')}</p>
               <p className="mt-1 text-4xl font-bold text-brand-700">
@@ -104,19 +167,128 @@ export default function AICredits() {
               <p className="mt-1 text-xs text-slate-400">{t('ai.credits.name')}</p>
             </div>
           </div>
-          <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 text-center">
-            <button onClick={() => setShowTopup(!showTopup)} className="btn-primary">
+          <div className="flex flex-wrap items-center justify-center gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+            <button onClick={() => { setShowMembership(!showMembership); setShowTopup(false); }} className="btn-primary">
+              开通 / 续费会员
+            </button>
+            <button onClick={() => { setShowTopup(!showTopup); setShowMembership(false); }} className="btn-outline">
               {t('ai.credits.topup')}
             </button>
-            <Link to="/ai" className="btn-ghost ml-3">
+            <Link to="/ai" className="btn-ghost">
               {t('ai.chat.title')}
             </Link>
-            <Link to="/ai/api" className="btn-outline ml-3">
+            <Link to="/ai/api" className="btn-outline">
               {t('ai.api.title')}
             </Link>
           </div>
         </div>
       </Reveal>
+
+      {/* 会员购买面板 */}
+      {showMembership && (
+        <Reveal>
+          <div className="card mb-8 p-6">
+            <h3 className="mb-1 text-lg font-semibold text-slate-800">开通会员（使用 AI 的门槛）</h3>
+            <p className="mb-4 text-xs text-slate-400">
+              会员是使用研智助手的门票，不同等级解锁不同模型档位；开通时赠送对应研点，可用研点再叠加充值。
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {TIER_LIST.map((tier) => {
+                const info = TIER_INFO[tier];
+                const isOwned = userTier === tier && membershipActive;
+                return (
+                  <div key={tier} className={`card relative p-5 transition hover:border-brand-400 hover:shadow-lg ${isOwned ? 'border-brand-400 ring-1 ring-brand-400' : ''}`}>
+                    {isOwned && (
+                      <span className="badge absolute -top-2 right-3 bg-brand-600 text-white">当前会员</span>
+                    )}
+                    <span className={`badge px-2 py-0.5 text-xs font-medium ${tierBadgeMap[tier]}`}>{info.name}</span>
+                    <p className="mt-3 text-2xl font-bold text-brand-700">
+                      ¥{info.priceMonthly}
+                      <span className="text-xs font-normal text-slate-400">/月</span>
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">年付 ¥{info.priceYearly}（省 ¥{info.priceYearly ? (info.priceMonthly * 12 - info.priceYearly) : 0}）</p>
+                    <ul className="mt-3 space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
+                      {info.perks.map((perk, i) => (
+                        <li key={i} className="flex items-start gap-1">
+                          <svg className="mt-0.5 h-3 w-3 shrink-0 text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                          <span>{perk}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        onClick={() => handleMembership(tier, 'monthly')}
+                        className="btn-primary flex-1 py-1.5 text-xs"
+                      >
+                        月付
+                      </button>
+                      <button
+                        onClick={() => handleMembership(tier, 'yearly')}
+                        className="btn-outline flex-1 py-1.5 text-xs"
+                      >
+                        年付
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {membershipResult && (
+              <div className={`mt-4 rounded-lg px-4 py-3 text-sm ${membershipResult.includes('失败') ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-800'}`}>
+                {membershipResult}
+              </div>
+            )}
+            {/* 会员收款码 */}
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="mb-3 text-sm font-medium text-slate-700">扫码支付（支付宝 / 微信同款金额）</p>
+              <div className="flex flex-wrap items-center gap-4">
+                <img src="/pay/alipay.png" alt="支付宝收款码" className="h-32 w-32 rounded-lg border border-slate-200 bg-white object-contain" />
+                <img src="/pay/wechatpay.png" alt="微信收款码" className="h-32 w-32 rounded-lg border border-slate-200 bg-white object-contain" />
+                <div className="text-xs leading-6 text-slate-500">
+                  <p>支付时请在备注中填写您的注册邮箱，便于核验。</p>
+                  <p>支付完成后无需额外操作，管理员核验后会员自动开通、赠送研点自动入账。</p>
+                  <p>如长时间未开通，请将付款凭证发送至 jiangtengqiao@qq.com。</p>
+                </div>
+              </div>
+            </div>
+            {/* 待确认会员订单 */}
+            {pendingMembership > 0 && (
+              <div className="mt-5">
+                <h4 className="mb-2 text-sm font-semibold text-slate-700">待确认会员订单</h4>
+                <div className="overflow-hidden rounded-lg border border-slate-200">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600">套餐</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600">金额</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600">赠送研点</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600">提交时间</th>
+                        <th className="px-3 py-2 text-center font-medium text-slate-600">状态</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {membershipOrders.filter((o) => o.status === 'pending').map((o) => (
+                        <tr key={o.id} className="border-t border-slate-100">
+                          <td className="px-3 py-2 text-slate-700">{TIER_INFO[o.tier].name}（{o.period === 'monthly' ? '月付' : '年付'}）</td>
+                          <td className="px-3 py-2 text-slate-700">{o.yuan} 元</td>
+                          <td className="px-3 py-2 text-slate-700">{o.granted_points.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-slate-500">{new Date(o.created_at).toLocaleString('zh-CN')}</td>
+                          <td className="px-3 py-2 text-center">
+                            <span className="badge bg-amber-50 text-amber-700">待确认</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            <p className="mt-4 text-xs text-slate-400">
+              会员费用不退还；会员到期后不再赠送研点，已购研点余额永久保留。
+            </p>
+          </div>
+        </Reveal>
+      )}
 
       {/* 充值面板 */}
       {showTopup && (
@@ -162,7 +334,7 @@ export default function AICredits() {
               </div>
             </div>
             {/* 待确认订单 */}
-            {topupOrders.filter((o) => o.status === 'pending').length > 0 && (
+            {pendingTopup > 0 && (
               <div className="mt-5">
                 <h4 className="mb-2 text-sm font-semibold text-slate-700">待确认订单</h4>
                 <div className="overflow-hidden rounded-lg border border-slate-200">
