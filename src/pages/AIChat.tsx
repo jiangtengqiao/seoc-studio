@@ -121,6 +121,7 @@ export default function AIChat() {
     alibaba: { name: '通义千问', badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
     zhipu: { name: '智谱', badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300' },
     deepseek: { name: 'DeepSeek', badge: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
+    anthropic: { name: 'Anthropic', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
   };
 
   const handleSend = async () => {

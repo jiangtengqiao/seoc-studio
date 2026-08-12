@@ -14,7 +14,7 @@ alter table profiles add column if not exists membership_expires_at timestamptz;
 -- ============================================================
 create table if not exists ai_models (
   id text primary key,
-  provider text not null check (provider in ('bytedance', 'alibaba', 'zhipu', 'deepseek')),
+  provider text not null check (provider in ('bytedance', 'alibaba', 'zhipu', 'deepseek', 'anthropic')),
   display_name jsonb not null default '{}',
   input_price numeric(10,6) not null default 0,
   output_price numeric(10,6) not null default 0,
@@ -28,6 +28,9 @@ create table if not exists ai_models (
 
 -- 兼容旧库：若 ai_models 表已存在但缺少 min_tier 列，则补充
 alter table ai_models add column if not exists min_tier text not null default 'lite' check (min_tier in ('lite','plus','pro','max'));
+-- 扩展 provider 约束以支持 anthropic
+alter table ai_models drop constraint if exists ai_models_provider_check;
+alter table ai_models add constraint ai_models_provider_check check (provider in ('bytedance', 'alibaba', 'zhipu', 'deepseek', 'anthropic'));
 
 -- ============================================================
 -- 2. ai_credits — 用户研点余额
@@ -424,19 +427,19 @@ $$;
 -- 模型价格更新（2025 市场价，单位：研点/千 token，1元=1000研点）
 -- ============================================================
 insert into ai_models (id, display_name, provider, input_price, output_price, min_tier, enabled, sort_order) values
-  ('doubao-pro-32k',     '豆包 Pro 32K',     'doubao',   5,    9,    'lite',  true, 1),
-  ('doubao-lite-32k',    '豆包 Lite 32K',    'doubao',   0.5,  1.5,  'lite',  true, 2),
-  ('qwen-turbo',         '通义千问 Turbo',   'qwen',     2,    6,    'lite',  true, 3),
-  ('qwen-plus',          '通义千问 Plus',    'qwen',     4,    12,   'plus',  true, 4),
-  ('qwen-max',           '通义千问 Max',     'qwen',     20,   60,   'pro',   true, 5),
-  ('qwen-long',          '通义千问 Long',    'qwen',     0.5,  2,    'lite',  true, 6),
-  ('glm-4-flash',        '智谱 GLM-4-Flash', 'glm',      0,    0,    'lite',  true, 7),
-  ('glm-4-air',          '智谱 GLM-4-Air',   'glm',      0.5,  0.5,  'lite',  true, 8),
-  ('glm-4',              '智谱 GLM-4',       'glm',      5,    15,   'plus',  true, 9),
-  ('glm-4-plus',         '智谱 GLM-4-Plus',  'glm',      5,    15,   'pro',   true, 10),
-  ('deepseek-chat',      'DeepSeek Chat',    'deepseek', 2,    8,    'lite',  true, 11),
-  ('deepseek-reasoner',  'DeepSeek Reasoner','deepseek', 4,    16,   'plus',  true, 12),
-  ('claude-sonnet-4',    'Claude Sonnet 4',  'anthropic',15,   75,   'max',   true, 13)
+  ('doubao-pro-32k',     '{"zh-CN":"豆包 Pro 32K","en":"Doubao Pro 32K"}',          'bytedance', 5,    9,    'lite',  true, 1),
+  ('doubao-lite-32k',    '{"zh-CN":"豆包 Lite 32K","en":"Doubao Lite 32K"}',        'bytedance', 0.5,  1.5,  'lite',  true, 2),
+  ('qwen-turbo',         '{"zh-CN":"通义千问 Turbo","en":"Qwen Turbo"}',            'alibaba',   2,    6,    'lite',  true, 3),
+  ('qwen-plus',          '{"zh-CN":"通义千问 Plus","en":"Qwen Plus"}',              'alibaba',   4,    12,   'plus',  true, 4),
+  ('qwen-max',           '{"zh-CN":"通义千问 Max","en":"Qwen Max"}',                'alibaba',   20,   60,   'pro',   true, 5),
+  ('qwen-long',          '{"zh-CN":"通义千问 Long","en":"Qwen Long"}',              'alibaba',   0.5,  2,    'lite',  true, 6),
+  ('glm-4-flash',        '{"zh-CN":"智谱 GLM-4-Flash","en":"GLM-4-Flash"}',         'zhipu',     0,    0,    'lite',  true, 7),
+  ('glm-4-air',          '{"zh-CN":"智谱 GLM-4-Air","en":"GLM-4-Air"}',             'zhipu',     0.5,  0.5,  'lite',  true, 8),
+  ('glm-4',              '{"zh-CN":"智谱 GLM-4","en":"GLM-4"}',                     'zhipu',     5,    15,   'plus',  true, 9),
+  ('glm-4-plus',         '{"zh-CN":"智谱 GLM-4-Plus","en":"GLM-4-Plus"}',           'zhipu',     5,    15,   'pro',   true, 10),
+  ('deepseek-chat',      '{"zh-CN":"DeepSeek Chat","en":"DeepSeek Chat"}',          'deepseek',  2,    8,    'lite',  true, 11),
+  ('deepseek-reasoner',  '{"zh-CN":"DeepSeek Reasoner","en":"DeepSeek Reasoner"}',  'deepseek',  4,    16,   'plus',  true, 12),
+  ('claude-sonnet-4',    '{"zh-CN":"Claude Sonnet 4","en":"Claude Sonnet 4"}',      'anthropic', 15,   75,   'max',   true, 13)
 on conflict (id) do update set
   display_name = excluded.display_name,
   provider = excluded.provider,
