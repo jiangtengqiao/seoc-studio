@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
-import { Reveal } from '../components/fx';
+import { Reveal, BackButton } from '../components/fx';
 import {
   getBalance,
   getTransactions,
@@ -11,6 +11,8 @@ import {
   listMyTopupOrders,
   createMembershipOrder,
   listMyMembershipOrders,
+  cancelTopupOrder,
+  cancelMembershipOrder,
   isMembershipActive,
   TIER_INFO,
   type AIBalance,
@@ -20,6 +22,18 @@ import {
   type AIMembershipOrder,
   type MembershipTier,
 } from '../lib/ai';
+
+const PAYMENT_METHODS = {
+  alipay: {
+    label: '支付宝',
+    qr: `${import.meta.env.BASE_URL}pay/alipay.png`
+  },
+  wechat: {
+    label: '微信支付',
+    qr: `${import.meta.env.BASE_URL}pay/wechatpay.png`
+  }
+} as const;
+type PaymentMethod = keyof typeof PAYMENT_METHODS;
 
 const TOPUP_PLANS = [
   { yuan: 10, points: 10000, label: '10 元' },
@@ -42,6 +56,7 @@ export default function AICredits() {
   const [showMembership, setShowMembership] = useState(false);
   const [topupResult, setTopupResult] = useState<string | null>(null);
   const [membershipResult, setMembershipResult] = useState<string | null>(null);
+  const [payMethod, setPayMethod] = useState<PaymentMethod>('alipay');
 
   useEffect(() => {
     loadData();
@@ -60,6 +75,24 @@ export default function AICredits() {
     setUsageLogs(logs);
     setTopupOrders(orders);
     setMembershipOrders(mOrders);
+  };
+
+  const handleCancelTopup = async (id: string) => {
+    try {
+      await cancelTopupOrder(id);
+      await loadData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCancelMembership = async (id: string) => {
+    try {
+      await cancelMembershipOrder(id);
+      await loadData();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleTopup = async (plan: typeof TOPUP_PLANS[0]) => {
@@ -114,9 +147,12 @@ export default function AICredits() {
   return (
     <div className="container-x py-8">
       <Reveal>
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-brand-950">{t('ai.credits.title')}</h1>
-          <p className="mt-1 text-sm text-slate-500">{t('ai.credits.subtitle')}</p>
+        <div className="mb-8 flex items-center gap-3">
+          <BackButton to="/ai" />
+          <div>
+            <h1 className="text-2xl font-bold text-brand-950">{t('ai.credits.title')}</h1>
+            <p className="mt-1 text-sm text-slate-500">{t('ai.credits.subtitle')}</p>
+          </div>
         </div>
       </Reveal>
 
@@ -239,42 +275,75 @@ export default function AICredits() {
               </div>
             )}
             {/* 会员收款码 */}
-            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="mb-3 text-sm font-medium text-slate-700">扫码支付（支付宝 / 微信同款金额）</p>
-              <div className="flex flex-wrap items-center gap-4">
-                <img src="/pay/alipay.png" alt="支付宝收款码" className="h-32 w-32 rounded-lg border border-slate-200 bg-white object-contain" />
-                <img src="/pay/wechatpay.png" alt="微信收款码" className="h-32 w-32 rounded-lg border border-slate-200 bg-white object-contain" />
-                <div className="text-xs leading-6 text-slate-500">
-                  <p>支付时请在备注中填写您的注册邮箱，便于核验。</p>
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+              <p className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-200">扫码支付（选中一种方式，扫码清晰呈现）</p>
+              <div className="flex flex-wrap items-start gap-4">
+                {(Object.keys(PAYMENT_METHODS) as PaymentMethod[]).map((key) => {
+                  const selected = payMethod === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setPayMethod(key)}
+                      className={`rounded-xl border-2 bg-white p-2 text-center transition dark:bg-slate-800 ${
+                        selected ? 'border-brand-500 shadow-lg' : 'border-slate-200 hover:border-brand-300 dark:border-slate-600'
+                      }`}
+                    >
+                      <span className="pay-qr-wrap block">
+                        <img
+                          src={PAYMENT_METHODS[key].qr}
+                          alt={`${PAYMENT_METHODS[key].label}收款码`}
+                          className={`block h-32 w-32 rounded-lg object-contain transition ${selected ? '' : 'scale-105 blur-[6px] grayscale-[40%]'}`}
+                        />
+                        {selected && <span className="pay-qr-scan" />}
+                      </span>
+                      <p className={`mt-1.5 text-xs font-medium ${selected ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500'}`}>
+                        {PAYMENT_METHODS[key].label}
+                      </p>
+                    </button>
+                  );
+                })}
+                <div className="text-xs leading-6 text-slate-500 dark:text-slate-400">
+                  <p>支付时请在备注中填写您的<strong className="text-brand-700">注册邮箱</strong>，便于核验。</p>
                   <p>支付完成后无需额外操作，管理员核验后会员自动开通、赠送研点自动入账。</p>
                   <p>如长时间未开通，请将付款凭证发送至 jiangtengqiao@qq.com。</p>
+                  <p className="mt-1 text-amber-600 dark:text-amber-400">订单 30 分钟内未确认将自动取消。</p>
                 </div>
               </div>
             </div>
             {/* 待确认会员订单 */}
             {pendingMembership > 0 && (
               <div className="mt-5">
-                <h4 className="mb-2 text-sm font-semibold text-slate-700">待确认会员订单</h4>
-                <div className="overflow-hidden rounded-lg border border-slate-200">
+                <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">待确认会员订单</h4>
+                <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-50">
+                    <thead className="bg-slate-50 dark:bg-slate-800">
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium text-slate-600">套餐</th>
-                        <th className="px-3 py-2 text-left font-medium text-slate-600">金额</th>
-                        <th className="px-3 py-2 text-left font-medium text-slate-600">赠送研点</th>
-                        <th className="px-3 py-2 text-left font-medium text-slate-600">提交时间</th>
-                        <th className="px-3 py-2 text-center font-medium text-slate-600">状态</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600 dark:text-slate-300">套餐</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600 dark:text-slate-300">金额</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600 dark:text-slate-300">赠送研点</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600 dark:text-slate-300">提交时间</th>
+                        <th className="px-3 py-2 text-center font-medium text-slate-600 dark:text-slate-300">剩余时间</th>
+                        <th className="px-3 py-2 text-center font-medium text-slate-600 dark:text-slate-300">操作</th>
                       </tr>
                     </thead>
                     <tbody>
                       {membershipOrders.filter((o) => o.status === 'pending').map((o) => (
-                        <tr key={o.id} className="border-t border-slate-100">
-                          <td className="px-3 py-2 text-slate-700">{TIER_INFO[o.tier].name}（{o.period === 'monthly' ? '月付' : '年付'}）</td>
-                          <td className="px-3 py-2 text-slate-700">{o.yuan} 元</td>
-                          <td className="px-3 py-2 text-slate-700">{o.granted_points.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-slate-500">{new Date(o.created_at).toLocaleString('zh-CN')}</td>
+                        <tr key={o.id} className="border-t border-slate-100 dark:border-slate-700">
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200">{TIER_INFO[o.tier].name}（{o.period === 'monthly' ? '月付' : '年付'}）</td>
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200">{o.yuan} 元</td>
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200">{o.granted_points.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{new Date(o.created_at).toLocaleString('zh-CN')}</td>
                           <td className="px-3 py-2 text-center">
-                            <span className="badge bg-amber-50 text-amber-700">待确认</span>
+                            <Countdown expiresAt={o.expires_at} />
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <button
+                              onClick={() => handleCancelMembership(o.id)}
+                              className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
+                            >
+                              取消
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -321,40 +390,73 @@ export default function AICredits() {
               </div>
             )}
             {/* 收款码 */}
-            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="mb-3 text-sm font-medium text-slate-700">扫码支付（支付宝 / 微信同款金额）</p>
-              <div className="flex flex-wrap items-center gap-4">
-                <img src="/pay/alipay.png" alt="支付宝收款码" className="h-32 w-32 rounded-lg border border-slate-200 bg-white object-contain" />
-                <img src="/pay/wechatpay.png" alt="微信收款码" className="h-32 w-32 rounded-lg border border-slate-200 bg-white object-contain" />
-                <div className="text-xs leading-6 text-slate-500">
-                  <p>支付时请在备注中填写您的注册邮箱，便于核验。</p>
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+              <p className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-200">扫码支付（选中一种方式，扫码清晰呈现）</p>
+              <div className="flex flex-wrap items-start gap-4">
+                {(Object.keys(PAYMENT_METHODS) as PaymentMethod[]).map((key) => {
+                  const selected = payMethod === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setPayMethod(key)}
+                      className={`rounded-xl border-2 bg-white p-2 text-center transition dark:bg-slate-800 ${
+                        selected ? 'border-brand-500 shadow-lg' : 'border-slate-200 hover:border-brand-300 dark:border-slate-600'
+                      }`}
+                    >
+                      <span className="pay-qr-wrap block">
+                        <img
+                          src={PAYMENT_METHODS[key].qr}
+                          alt={`${PAYMENT_METHODS[key].label}收款码`}
+                          className={`block h-32 w-32 rounded-lg object-contain transition ${selected ? '' : 'scale-105 blur-[6px] grayscale-[40%]'}`}
+                        />
+                        {selected && <span className="pay-qr-scan" />}
+                      </span>
+                      <p className={`mt-1.5 text-xs font-medium ${selected ? 'text-brand-700 dark:text-brand-300' : 'text-slate-500'}`}>
+                        {PAYMENT_METHODS[key].label}
+                      </p>
+                    </button>
+                  );
+                })}
+                <div className="text-xs leading-6 text-slate-500 dark:text-slate-400">
+                  <p>支付时请在备注中填写您的<strong className="text-brand-700">注册邮箱</strong>，便于核验。</p>
                   <p>支付完成后无需额外操作，管理员核验到账后研点自动入账。</p>
                   <p>如长时间未到账，请将付款凭证发送至 jiangtengqiao@qq.com。</p>
+                  <p className="mt-1 text-amber-600 dark:text-amber-400">订单 30 分钟内未确认将自动取消。</p>
                 </div>
               </div>
             </div>
             {/* 待确认订单 */}
             {pendingTopup > 0 && (
               <div className="mt-5">
-                <h4 className="mb-2 text-sm font-semibold text-slate-700">待确认订单</h4>
-                <div className="overflow-hidden rounded-lg border border-slate-200">
+                <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">待确认订单</h4>
+                <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-50">
+                    <thead className="bg-slate-50 dark:bg-slate-800">
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium text-slate-600">金额</th>
-                        <th className="px-3 py-2 text-left font-medium text-slate-600">研点</th>
-                        <th className="px-3 py-2 text-left font-medium text-slate-600">提交时间</th>
-                        <th className="px-3 py-2 text-center font-medium text-slate-600">状态</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600 dark:text-slate-300">金额</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600 dark:text-slate-300">研点</th>
+                        <th className="px-3 py-2 text-left font-medium text-slate-600 dark:text-slate-300">提交时间</th>
+                        <th className="px-3 py-2 text-center font-medium text-slate-600 dark:text-slate-300">剩余时间</th>
+                        <th className="px-3 py-2 text-center font-medium text-slate-600 dark:text-slate-300">操作</th>
                       </tr>
                     </thead>
                     <tbody>
                       {topupOrders.filter((o) => o.status === 'pending').map((o) => (
-                        <tr key={o.id} className="border-t border-slate-100">
-                          <td className="px-3 py-2 text-slate-700">{o.yuan} 元</td>
-                          <td className="px-3 py-2 text-slate-700">{o.points.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-slate-500">{new Date(o.created_at).toLocaleString('zh-CN')}</td>
+                        <tr key={o.id} className="border-t border-slate-100 dark:border-slate-700">
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200">{o.yuan} 元</td>
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200">{o.points.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-slate-500 dark:text-slate-400">{new Date(o.created_at).toLocaleString('zh-CN')}</td>
                           <td className="px-3 py-2 text-center">
-                            <span className="badge bg-amber-50 text-amber-700">待确认</span>
+                            <Countdown expiresAt={o.expires_at} />
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <button
+                              onClick={() => handleCancelTopup(o.id)}
+                              className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
+                            >
+                              取消
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -493,5 +595,32 @@ export default function AICredits() {
         </Reveal>
       )}
     </div>
+  );
+}
+
+function Countdown({ expiresAt }: { expiresAt: string | null | undefined }) {
+  const [remaining, setRemaining] = useState<number>(0);
+
+  useEffect(() => {
+    if (!expiresAt) return;
+    const update = () => {
+      const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+      setRemaining(diff);
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+
+  if (!expiresAt) return <span className="text-xs text-slate-400">-</span>;
+  if (remaining <= 0) return <span className="badge bg-red-50 text-red-600">已过期</span>;
+
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  return (
+    <span className="order-countdown text-xs text-amber-600">
+      <span className="num">{String(m).padStart(2, '0')}</span>:
+      <span className="num">{String(s).padStart(2, '0')}</span>
+    </span>
   );
 }

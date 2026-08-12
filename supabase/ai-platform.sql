@@ -371,3 +371,77 @@ drop trigger if exists on_ai_membership_order_confirm on ai_membership_orders;
 create trigger on_ai_membership_order_confirm
   before update on ai_membership_orders
   for each row execute function confirm_ai_membership_order();
+
+-- ============================================================
+-- 订单限时 & 自动取消（30 分钟未确认自动取消）
+-- ============================================================
+alter table ai_topup_orders add column if not exists expires_at timestamptz;
+alter table ai_membership_orders add column if not exists expires_at timestamptz;
+
+-- 给已有 pending 订单补 expires_at
+update ai_topup_orders set expires_at = created_at + interval '30 minutes'
+  where status = 'pending' and expires_at is null;
+update ai_membership_orders set expires_at = created_at + interval '30 minutes'
+  where status = 'pending' and expires_at is null;
+
+-- 创建订单时自动设置 expires_at（30 分钟有效）
+create or replace function set_order_expires_at()
+returns trigger language plpgsql as
+$$
+begin
+  if new.status = 'pending' and new.expires_at is null then
+    new.expires_at = now() + interval '30 minutes';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_topup_order_set_expiry on ai_topup_orders;
+create trigger on_topup_order_set_expiry
+  before insert on ai_topup_orders
+  for each row execute function set_order_expires_at();
+
+drop trigger if exists on_membership_order_set_expiry on ai_membership_orders;
+create trigger on_membership_order_set_expiry
+  before insert on ai_membership_orders
+  for each row execute function set_order_expires_at();
+
+-- 自动取消过期订单（前端加载列表时调用）
+create or replace function cancel_expired_orders()
+returns void language plpgsql as
+$$
+begin
+  update ai_topup_orders
+    set status = 'rejected', admin_note = coalesce(admin_note, '') || ' [系统自动取消-超时未确认]'
+    where status = 'pending' and expires_at < now();
+  update ai_membership_orders
+    set status = 'rejected', admin_note = coalesce(admin_note, '') || ' [系统自动取消-超时未确认]'
+    where status = 'pending' and expires_at < now();
+end;
+$$;
+
+-- ============================================================
+-- 模型价格更新（2025 市场价，单位：研点/千 token，1元=1000研点）
+-- ============================================================
+insert into ai_models (id, display_name, provider, input_price, output_price, min_tier, enabled, sort_order) values
+  ('doubao-pro-32k',     '豆包 Pro 32K',     'doubao',   5,    9,    'lite',  true, 1),
+  ('doubao-lite-32k',    '豆包 Lite 32K',    'doubao',   0.5,  1.5,  'lite',  true, 2),
+  ('qwen-turbo',         '通义千问 Turbo',   'qwen',     2,    6,    'lite',  true, 3),
+  ('qwen-plus',          '通义千问 Plus',    'qwen',     4,    12,   'plus',  true, 4),
+  ('qwen-max',           '通义千问 Max',     'qwen',     20,   60,   'pro',   true, 5),
+  ('qwen-long',          '通义千问 Long',    'qwen',     0.5,  2,    'lite',  true, 6),
+  ('glm-4-flash',        '智谱 GLM-4-Flash', 'glm',      0,    0,    'lite',  true, 7),
+  ('glm-4-air',          '智谱 GLM-4-Air',   'glm',      0.5,  0.5,  'lite',  true, 8),
+  ('glm-4',              '智谱 GLM-4',       'glm',      5,    15,   'plus',  true, 9),
+  ('glm-4-plus',         '智谱 GLM-4-Plus',  'glm',      5,    15,   'pro',   true, 10),
+  ('deepseek-chat',      'DeepSeek Chat',    'deepseek', 2,    8,    'lite',  true, 11),
+  ('deepseek-reasoner',  'DeepSeek Reasoner','deepseek', 4,    16,   'plus',  true, 12),
+  ('claude-sonnet-4',    'Claude Sonnet 4',  'anthropic',15,   75,   'max',   true, 13)
+on conflict (id) do update set
+  display_name = excluded.display_name,
+  provider = excluded.provider,
+  input_price = excluded.input_price,
+  output_price = excluded.output_price,
+  min_tier = excluded.min_tier,
+  enabled = excluded.enabled,
+  sort_order = excluded.sort_order;

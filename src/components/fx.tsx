@@ -460,3 +460,25 @@ export function BackToTop() {
     </button>
   );
 }
+
+/** 返回上一级按钮（用于子页面顶部） */
+export function BackButton({ to = -1, label = '返回', className = '' }: { to?: number | string; label?: string; className?: string }) {
+  return (
+    <button
+      onClick={() => {
+        if (typeof to === 'number') {
+          if (window.history.length > 1) window.history.back();
+          else window.location.hash = '#/';
+        } else {
+          window.location.hash = `#${to}`;
+        }
+      }}
+      className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-300 ${className}`}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
+      {label}
+    </button>
+  );
+}

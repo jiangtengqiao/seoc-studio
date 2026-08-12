@@ -602,5 +602,116 @@ body {
 }
 
 .ai-model-trigger {
-  min-width: 12rem;
+  min-width: 14rem;
+}
+
+/* ===== AI 对话区域自定义滚动条 ===== */
+.ai-chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.ai-chat-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.ai-chat-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ai-chat-scroll::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 3px;
+  border: none;
+}
+.ai-chat-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+.dark .ai-chat-scroll {
+  scrollbar-color: #475569 transparent;
+}
+.dark .ai-chat-scroll::-webkit-scrollbar-thumb {
+  background-color: #475569;
+}
+.dark .ai-chat-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
+}
+
+/* ===== 收款码动效 ===== */
+.pay-qr-wrap {
+  position: relative;
+  display: inline-block;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.pay-qr-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  box-shadow: 0 0 0 2px rgba(37, 84, 235, 0.15);
+  animation: pay-qr-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+.pay-qr-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(37, 84, 235, 0.8), transparent);
+  box-shadow: 0 0 12px 2px rgba(37, 84, 235, 0.4);
+  animation: pay-qr-scan-line 2.5s ease-in-out infinite;
+  z-index: 2;
+  pointer-events: none;
+}
+@keyframes pay-qr-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(37, 84, 235, 0.15); }
+  50% { box-shadow: 0 0 0 4px rgba(37, 84, 235, 0.35), 0 0 20px 4px rgba(37, 84, 235, 0.15); }
+}
+@keyframes pay-qr-scan-line {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+.pay-qr-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 12px;
+}
+.pay-qr-grid {
+  display: grid;
+  grid-template-columns: repeat(21, 1fr);
+  gap: 0;
+  width: 128px;
+  height: 128px;
+  padding: 8px;
+  background: white;
+}
+.pay-qr-grid > div {
+  width: 100%;
+  height: 100%;
+}
+.pay-qr-grid > div.on {
+  background: #0f172a;
+}
+
+/* ===== 订单倒计时 ===== */
+.order-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.order-countdown .num {
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-weight: 600;
+  font-size: 11px;
+  min-width: 22px;
+  text-align: center;
 }

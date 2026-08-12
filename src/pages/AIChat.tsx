@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
-import { Reveal } from '../components/fx';
+import { Reveal, BackButton } from '../components/fx';
 import {
   sendMessage,
   getModels,
@@ -316,6 +316,7 @@ export default function AIChat() {
       <div className="border-b border-slate-200 bg-white">
         <div className="container-x flex items-center justify-between py-3">
           <div className="flex items-center gap-3">
+            <BackButton to="/" />
             <span className="mark-r text-2xl font-bold">R</span>
             <div>
               <h1 className="text-lg font-bold text-brand-950">{t('ai.chat.title')}</h1>
@@ -346,14 +347,16 @@ export default function AIChat() {
 
               {/* 下拉面板 */}
               {modelDropdownOpen && (
-                <div className="ai-model-dropdown absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                <div className="ai-model-dropdown absolute right-0 z-50 mt-2 w-[22rem] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
                   <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-700">
                     <p className="text-xs font-medium text-slate-500 dark:text-slate-400">选择 AI 模型</p>
-                    <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">括号内为每千 token 研点价（输入/输出）</p>
+                    <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">价格为研点/千token（1元=1000研点）</p>
                   </div>
-                  <div className="max-h-80 overflow-y-auto">
+                  <div className="max-h-96 overflow-y-auto ai-chat-scroll">
                     {models.map((m) => {
                       const locked = !canUseModel(effectiveTier, m);
+                      const yuanInput = (m.input_price / 1000).toFixed(3);
+                      const yuanOutput = (m.output_price / 1000).toFixed(3);
                       return (
                         <button
                           key={m.id}
@@ -363,7 +366,7 @@ export default function AIChat() {
                             setSelectedModel(m.id);
                             setModelDropdownOpen(false);
                           }}
-                          className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition ${
+                          className={`flex w-full items-start gap-3 px-3 py-3 text-left transition ${
                             locked
                               ? 'cursor-not-allowed opacity-50'
                               : 'hover:bg-brand-50 dark:hover:bg-slate-700'
@@ -383,19 +386,22 @@ export default function AIChat() {
                                 </span>
                               )}
                             </p>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                              <span className="flex items-center gap-1">
-                                <svg className="h-3 w-3 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 000 2h11a1 1 0 100-2H3zM3 9a1 1 0 000 2h7a1 1 0 100-2H3zM3 14a1 1 0 100 2h4a1 1 0 100-2H3z" /></svg>
-                                输入 {m.input_price}
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+                              <span title={`约 ¥${yuanInput}/百万输入token`}>
+                                输入 <span className="font-mono font-medium text-slate-700 dark:text-slate-200">{m.input_price}</span>
+                                {m.input_price === 0 ? ' 免费' : ' 研点'}
                               </span>
-                              <span className="flex items-center gap-1">
-                                <svg className="h-3 w-3 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M17 4a1 1 0 000 2H6a1 1 0 100-2h11zM17 9a1 1 0 000 2h-7a1 1 0 110-2h7zM17 14a1 1 0 100 2H6a1 1 0 110-2h11z" /></svg>
-                                输出 {m.output_price}
+                              <span title={`约 ¥${yuanOutput}/百万输出token`}>
+                                输出 <span className="font-mono font-medium text-slate-700 dark:text-slate-200">{m.output_price}</span>
+                                {m.output_price === 0 ? ' 免费' : ' 研点'}
                               </span>
                               {m.free_daily_quota > 0 && (
                                 <span className="text-emerald-600 dark:text-emerald-400">免费 {m.free_daily_quota}/天</span>
                               )}
                             </div>
+                            <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">
+                              ≈ ¥{yuanInput}/¥{yuanOutput} 每百万token · 需 {TIER_INFO[m.min_tier].name}
+                            </p>
                           </div>
                           {locked ? (
                             <svg className="mt-1 h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
@@ -448,12 +454,12 @@ export default function AIChat() {
       )}
 
       {/* 消息列表 */}
-      <div className="flex-1 overflow-y-auto bg-slate-50">
+      <div className="ai-chat-scroll flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
         <div className="container-x py-6">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <span className="mark-r mb-4 text-6xl font-bold opacity-30">R</span>
-              <h2 className="text-xl font-semibold text-slate-700">{t('ai.chat.welcome')}</h2>
+              <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-200">{t('ai.chat.welcome')}</h2>
               <p className="mt-2 max-w-md text-sm text-slate-500">{t('ai.chat.welcomeDesc')}</p>
               {currentModel && (
                 <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -466,16 +472,16 @@ export default function AIChat() {
           )}
 
           {messages.map((msg, i) => (
-            <div key={i} className={`mb-4 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] ${msg.role === 'user' ? 'order-1' : 'order-0'}`}>
+            <div key={i} className={`mb-6 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`flex max-w-[85%] flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                 {/* 头像 */}
-                <div className={`mb-1 flex items-center gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                <div className={`mb-1.5 flex items-center gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                   {msg.role === 'assistant' ? (
                     <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-800 text-xs font-bold text-white">
                       R
                     </span>
                   ) : (
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-xs font-medium text-brand-700">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-xs font-medium text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
                       {(profile?.nickname || profile?.email || 'U').charAt(0).toUpperCase()}
                     </span>
                   )}
@@ -485,7 +491,7 @@ export default function AIChat() {
                 </div>
                 {/* 气泡 */}
                 <div
-                  className={`rounded-2xl px-4 py-3 text-sm ${
+                  className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
                     msg.role === 'user'
                       ? 'ai-bubble-user rounded-br-md'
                       : 'ai-bubble-assistant rounded-bl-md'
@@ -497,13 +503,13 @@ export default function AIChat() {
                       {streaming && i === messages.length - 1 && <span className="ai-streaming-cursor" />}
                     </div>
                   ) : (
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                   )}
                 </div>
                 {/* 底部信息 */}
                 {msg.role === 'assistant' && msg.content && !streaming && (
-                  <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-                    {msg.isFree && <span className="badge bg-emerald-50 text-emerald-600">{t('ai.chat.freeUsed')}</span>}
+                  <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-400">
+                    {msg.isFree && <span className="badge bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">{t('ai.chat.freeUsed')}</span>}
                     {msg.cost != null && msg.cost > 0 && (
                       <span>{t('ai.chat.tokenCost')}: {msg.cost.toFixed(4)} {t('ai.credits.name')}</span>
                     )}
@@ -569,6 +575,9 @@ export default function AIChat() {
             {currentModel && (
               <span className="ml-2 text-slate-500 dark:text-slate-400">
                 {getModelName(currentModel)} · 输入 {currentModel.input_price} 研点/千token · 输出 {currentModel.output_price} 研点/千token
+                <span className="ml-1 text-slate-400 dark:text-slate-500">
+                  （≈¥{(currentModel.input_price/1000).toFixed(3)}/¥{(currentModel.output_price/1000).toFixed(3)} 每百万token）
+                </span>
                 {currentModel.free_daily_quota > 0 && ` · 每日免费 ${currentModel.free_daily_quota} 次`}
               </span>
             )}

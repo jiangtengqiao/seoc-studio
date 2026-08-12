@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useI18n } from '../lib/i18n';
-import { Reveal } from '../components/fx';
+import { Reveal, BackButton } from '../components/fx';
 import {
   listApiKeys,
   createApiKey,
   revokeApiKey,
   getModels,
+  TIER_INFO,
   type AIApiKey,
   type AIModel,
 } from '../lib/ai';
@@ -62,9 +63,12 @@ export default function AIApiKeys() {
   return (
     <div className="container-x py-8">
       <Reveal>
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-brand-950">{t('ai.api.title')}</h1>
-          <p className="mt-1 text-sm text-slate-500">{t('ai.api.subtitle')}</p>
+        <div className="mb-8 flex items-center gap-3">
+          <BackButton to="/ai" />
+          <div>
+            <h1 className="text-2xl font-bold text-brand-950">{t('ai.api.title')}</h1>
+            <p className="mt-1 text-sm text-slate-500">{t('ai.api.subtitle')}</p>
+          </div>
         </div>
       </Reveal>
 
@@ -212,22 +216,34 @@ print(response.choices[0].message.content)`}</code></pre>
   }'`}</code></pre>
 
               <h4>{t('ai.api.availableModels')}</h4>
+              <p className="mb-3 text-sm text-slate-500">
+                价格单位为<strong>研点/千 token</strong>（1 元 = 1000 研点）。例如输入价 4 研点/千token ≈ ¥4/百万输入token。
+                会员门槛指使用该模型所需的最低会员等级。
+              </p>
               <table>
                 <thead>
                   <tr>
                     <th>Model ID</th>
+                    <th>名称</th>
                     <th>{t('ai.credits.provider')}</th>
-                    <th>Input ({t('ai.credits.name')}/1K)</th>
-                    <th>Output ({t('ai.credits.name')}/1K)</th>
+                    <th>输入 (研点/1K)</th>
+                    <th>输出 (研点/1K)</th>
+                    <th>≈ 元/百万token</th>
+                    <th>会员门槛</th>
                   </tr>
                 </thead>
                 <tbody>
                   {models.map((m) => (
                     <tr key={m.id}>
                       <td><code>{m.id}</code></td>
+                      <td>{m.display_name[lang] || m.display_name['zh-CN'] || m.id}</td>
                       <td>{m.provider}</td>
                       <td>{m.input_price}</td>
                       <td>{m.output_price}</td>
+                      <td className="text-slate-500">¥{m.input_price}/¥{m.output_price}</td>
+                      <td>
+                        <span className="badge bg-slate-100 text-slate-600">{TIER_INFO[m.min_tier]?.name || m.min_tier}</span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

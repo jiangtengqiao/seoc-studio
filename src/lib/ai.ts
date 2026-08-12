@@ -450,6 +450,7 @@ export interface AITopupOrder {
   note: string | null;
   created_at: string;
   confirmed_at: string | null;
+  expires_at?: string | null;
 }
 
 /**
@@ -500,6 +501,8 @@ export async function createTopupOrder(
 export async function listMyTopupOrders(limit = 20): Promise<AITopupOrder[]> {
   if (!isCloudEnabled || !supabase) return [];
 
+  await cancelExpiredOrders();
+
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return [];
 
@@ -522,6 +525,8 @@ export async function listAllTopupOrders(
 ): Promise<(AITopupOrder & { email?: string })[]> {
   if (!isCloudEnabled || !supabase) return [];
 
+  await cancelExpiredOrders();
+
   let query = supabase.from('ai_topup_orders').select('*, profiles(email)');
   if (status) query = query.eq('status', status);
   const { data, error } = await query.order('created_at', { ascending: false }).limit(100);
@@ -535,6 +540,7 @@ export async function listAllTopupOrders(
     note: (r.note as string | null) || null,
     created_at: r.created_at as string,
     confirmed_at: (r.confirmed_at as string | null) || null,
+    expires_at: (r.expires_at as string | null) || null,
     email: ((r.profiles as { email?: string } | null)?.email) || '',
   }));
 }
@@ -667,6 +673,7 @@ export interface AIMembershipOrder {
   note: string | null;
   created_at: string;
   confirmed_at: string | null;
+  expires_at?: string | null;
 }
 
 /**
@@ -708,6 +715,8 @@ export async function createMembershipOrder(
 export async function listMyMembershipOrders(limit = 20): Promise<AIMembershipOrder[]> {
   if (!isCloudEnabled || !supabase) return [];
 
+  await cancelExpiredOrders();
+
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return [];
 
@@ -730,6 +739,8 @@ export async function listAllMembershipOrders(
 ): Promise<(AIMembershipOrder & { email?: string })[]> {
   if (!isCloudEnabled || !supabase) return [];
 
+  await cancelExpiredOrders();
+
   let query = supabase.from('ai_membership_orders').select('*, profiles(email)');
   if (status) query = query.eq('status', status);
   const { data, error } = await query.order('created_at', { ascending: false }).limit(100);
@@ -745,6 +756,7 @@ export async function listAllMembershipOrders(
     note: (r.note as string | null) || null,
     created_at: r.created_at as string,
     confirmed_at: (r.confirmed_at as string | null) || null,
+    expires_at: (r.expires_at as string | null) || null,
     email: ((r.profiles as { email?: string } | null)?.email) || '',
   }));
 }
@@ -759,4 +771,35 @@ export async function confirmMembershipOrder(id: string, ok: boolean): Promise<v
     .update({ status: ok ? 'confirmed' : 'rejected' })
     .eq('id', id);
   if (error) throw error;
+}
+
+/**
+ * 用户主动取消订单（仅 pending 状态可取消）
+ */
+export async function cancelTopupOrder(id: string): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  const { error } = await supabase
+    .from('ai_topup_orders')
+    .update({ status: 'rejected', admin_note: '用户主动取消' })
+    .eq('id', id)
+    .eq('status', 'pending');
+  if (error) throw error;
+}
+
+export async function cancelMembershipOrder(id: string): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  const { error } = await supabase
+    .from('ai_membership_orders')
+    .update({ status: 'rejected', admin_note: '用户主动取消' })
+    .eq('id', id)
+    .eq('status', 'pending');
+  if (error) throw error;
+}
+
+/**
+ * 调用数据库自动取消过期订单（前端加载订单列表时调用）
+ */
+export async function cancelExpiredOrders(): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  await supabase.rpc('cancel_expired_orders');
 }
