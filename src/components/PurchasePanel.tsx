@@ -120,21 +120,22 @@ export default function PurchasePanel({
                 key={key}
                 type="button"
                 onClick={() => setMethod(key)}
-                className={`group rounded-xl border-2 bg-white p-2.5 text-center transition ${
+                className={`pay-card group rounded-xl border-2 bg-white p-2.5 text-center ${
                   selected
-                    ? 'border-brand-500 shadow-md'
+                    ? 'pay-card-selected border-brand-500 shadow-lg'
                     : 'border-slate-200 hover:border-brand-300'
                 }`}
               >
                 <span className="relative mx-auto block w-full max-w-40 overflow-hidden rounded-lg border border-slate-100">
                   <img
+                    key={selected ? 'on' : 'off'}
                     src={PAYMENT_METHODS[key].qr}
                     alt={`${PAYMENT_METHODS[key].label}收款码`}
                     loading="eager"
-                    className={`w-full transition duration-300 ${selected ? '' : 'scale-105 blur-[7px] grayscale-[40%]'}`}
+                    className={`w-full ${selected ? 'pay-reveal' : 'scale-105 blur-[7px] grayscale-[40%]'}`}
                   />
                   {!selected && (
-                    <span className="pay-lock absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-white transition group-hover:brightness-110">
+                    <span className="pay-lock pay-cover-in absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-white transition group-hover:brightness-110">
                       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="5" y="11" width="14" height="9" rx="2" />
                         <path d="M8 11V7a4 4 0 0 1 8 0v4" />
@@ -144,7 +145,7 @@ export default function PurchasePanel({
                     </span>
                   )}
                   {selected && (
-                    <span className="absolute right-1.5 top-1.5 rounded-md bg-brand-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow">
+                    <span className="check-pop absolute right-1.5 top-1.5 rounded-md bg-brand-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow">
                       可扫码支付
                     </span>
                   )}
@@ -154,7 +155,7 @@ export default function PurchasePanel({
                     selected ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300'
                   }`}>
                     {selected && (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
+                      <svg className="check-pop" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
                         <path d="M5 13l4 4L19 7" />
                       </svg>
                     )}
