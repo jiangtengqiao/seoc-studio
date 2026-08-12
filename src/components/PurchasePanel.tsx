@@ -108,41 +108,62 @@ export default function PurchasePanel({
 
       <div className="mt-3 rounded-lg bg-brand-50 p-3">
         <p className="mb-3 text-center text-xs text-slate-500">
-          第一步：任选一种方式扫码支付 ¥{price.toFixed(2)}，两个收款码同时展示无需切换
+          第一步：任选一种方式扫码支付 ¥{price.toFixed(2)}。两个收款码同时展示，<br />
+          您点击选用哪个，哪个即刻清晰呈现；未选中的将被安全覆盖，无法扫码
         </p>
-        {/* 双码同屏展示，彻底消除切换与加载延迟 */}
+        {/* 双码同屏：选中的清晰，未选中的被锁定覆盖物遮盖；点击任意一侧即切换 */}
         <div className="grid grid-cols-2 gap-3">
-          {(Object.keys(PAYMENT_METHODS) as PaymentMethod[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setMethod(key)}
-              className={`group rounded-xl border-2 bg-white p-2.5 text-center transition ${
-                method === key
-                  ? 'border-brand-500 shadow-md'
-                  : 'border-slate-200 hover:border-brand-300'
-              }`}
-            >
-              <img
-                src={PAYMENT_METHODS[key].qr}
-                alt={`${PAYMENT_METHODS[key].label}收款码`}
-                loading="eager"
-                className="mx-auto w-full max-w-40 rounded-lg border border-slate-100"
-              />
-              <p className={`mt-2 flex items-center justify-center gap-1.5 text-sm ${method === key ? 'font-semibold text-brand-700' : 'text-slate-600'}`}>
-                <span className={`flex h-4 w-4 items-center justify-center rounded-full border transition ${
-                  method === key ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300'
-                }`}>
-                  {method === key && (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
+          {(Object.keys(PAYMENT_METHODS) as PaymentMethod[]).map((key) => {
+            const selected = method === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setMethod(key)}
+                className={`group rounded-xl border-2 bg-white p-2.5 text-center transition ${
+                  selected
+                    ? 'border-brand-500 shadow-md'
+                    : 'border-slate-200 hover:border-brand-300'
+                }`}
+              >
+                <span className="relative mx-auto block w-full max-w-40 overflow-hidden rounded-lg border border-slate-100">
+                  <img
+                    src={PAYMENT_METHODS[key].qr}
+                    alt={`${PAYMENT_METHODS[key].label}收款码`}
+                    loading="eager"
+                    className={`w-full transition duration-300 ${selected ? '' : 'scale-105 blur-[7px] grayscale-[40%]'}`}
+                  />
+                  {!selected && (
+                    <span className="pay-lock absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-white transition group-hover:brightness-110">
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="5" y="11" width="14" height="9" rx="2" />
+                        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                      </svg>
+                      <span className="text-xs font-medium tracking-wide">已安全锁定</span>
+                      <span className="text-[10px] opacity-80">点击选用此方式</span>
+                    </span>
+                  )}
+                  {selected && (
+                    <span className="absolute right-1.5 top-1.5 rounded-md bg-brand-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow">
+                      可扫码支付
+                    </span>
                   )}
                 </span>
-                {PAYMENT_METHODS[key].label}
-              </p>
-            </button>
-          ))}
+                <p className={`mt-2 flex items-center justify-center gap-1.5 text-sm ${selected ? 'font-semibold text-brand-700' : 'text-slate-500'}`}>
+                  <span className={`flex h-4 w-4 items-center justify-center rounded-full border transition ${
+                    selected ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300'
+                  }`}>
+                    {selected && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
+                        <path d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </span>
+                  {PAYMENT_METHODS[key].label}
+                </p>
+              </button>
+            );
+          })}
         </div>
         <p className="mt-3 text-center text-xs leading-5 text-slate-500">
           收款方：编程研究与探索（JTQ）<br />

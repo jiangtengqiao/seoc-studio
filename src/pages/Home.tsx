@@ -112,28 +112,52 @@ const FAQS = [
 ];
 
 function HeroCodeWindow() {
-  const [shown, setShown] = useState(0);
-  useEffect(() => {
-    if (shown >= CODE_LINES.length) return;
-    const t = setTimeout(() => setShown((s) => s + 1), shown === 0 ? 600 : 240);
-    return () => clearTimeout(t);
-  }, [shown]);
+  const lines: { n: number; code: JSX.Element }[] = [
+    { n: 1, code: (<><span className="text-slate-500 italic"># SEOC Studio · 编程研究与探索</span></>) },
+    { n: 2, code: (<><span className="text-violet-400">from</span> <span className="text-slate-200">research</span> <span className="text-violet-400">import</span> <span className="text-brand-300">Origins</span>, <span className="text-brand-300">Craft</span></>) },
+    { n: 3, code: (<>&nbsp;</>) },
+    { n: 4, code: (<><span className="text-violet-400">def</span> <span className="text-amber-300">study</span><span className="text-slate-300">(topic):</span></>) },
+    { n: 5, code: (<>&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-slate-200">trace</span> <span className="text-slate-400">=</span> <span className="text-brand-300">Origins</span><span className="text-slate-300">(topic).</span><span className="text-amber-300">trace</span><span className="text-slate-300">()</span>&nbsp;&nbsp;<span className="text-slate-500 italic"># 追根溯源</span></>) },
+    { n: 6, code: (<>&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-violet-400">return</span> <span className="text-brand-300">Craft</span><span className="text-slate-300">(trace).</span><span className="text-amber-300">refine</span><span className="text-slate-300">()</span>&nbsp;&nbsp;<span className="text-slate-500 italic"># 打磨成器</span></>) },
+    { n: 7, code: (<>&nbsp;</>) },
+    { n: 8, code: (<><span className="text-amber-300">study</span><span className="text-slate-300">(</span><span className="text-emerald-300">"Python 的起源"</span><span className="text-slate-300">)</span><span className="code-caret" /></>) }
+  ];
   return (
-    <div className="code-window float-slow relative rounded-2xl p-5">
-      <div className="mb-4 flex items-center gap-1.5">
-        <span className="h-3 w-3 rounded-full bg-red-400/80" />
-        <span className="h-3 w-3 rounded-full bg-accent-400/80" />
-        <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
-        <span className="ml-3 font-mono text-xs text-brand-300">learner.py</span>
+    <div className="spin-border shadow-lift">
+      <div className="overflow-hidden rounded-[1.05rem] bg-brand-950 font-mono text-xs leading-6 text-slate-200">
+        {/* 标签页栏 */}
+        <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-4 py-2.5">
+          <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+          <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+          <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+          <div className="ml-3 flex gap-1 text-[11px]">
+            <span className="rounded-md bg-white/10 px-2.5 py-0.5 text-brand-200">research.py</span>
+            <span className="rounded-md px-2.5 py-0.5 text-slate-500">notes.md</span>
+          </div>
+          <span className="ml-auto flex items-center gap-1.5 text-[10px] text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 pulse-dot" />
+            running
+          </span>
+        </div>
+        {/* 代码区 */}
+        <div className="flex px-0 py-3">
+          <div className="select-none border-r border-white/5 px-3 text-right text-slate-600">
+            {lines.map((l) => (
+              <div key={l.n}>{l.n}</div>
+            ))}
+          </div>
+          <div className="flex-1 whitespace-pre px-4">
+            {lines.map((l) => (
+              <div key={l.n}>{l.code}</div>
+            ))}
+          </div>
+        </div>
+        {/* 状态栏 */}
+        <div className="flex items-center justify-between border-t border-white/10 bg-white/5 px-4 py-1.5 text-[10px] text-slate-500">
+          <span>Python 3.12 · UTF-8</span>
+          <span>Ln 8, Col 22 · Spaces: 4</span>
+        </div>
       </div>
-      <pre className="min-h-56 font-mono text-[13px] leading-6 text-slate-200">
-        {CODE_LINES.slice(0, shown).map((l, i) => (
-          <div key={i} dangerouslySetInnerHTML={{ __html: l.html || '&nbsp;' }} />
-        ))}
-      </pre>
-      <span className="absolute -right-3 -top-3 rounded-full bg-accent-500 px-3 py-1 font-mono text-[10px] font-bold tracking-widest text-white shadow-lift">
-        SEOC
-      </span>
     </div>
   );
 }
@@ -205,7 +229,7 @@ export default function Home() {
           <Reveal delay={250} className="self-center">
             <TiltCard max={6}>
               <div className="relative">
-                <div className="orbit-ring pointer-events-none absolute -inset-5 rounded-[1.8rem] border border-dashed border-brand-300/60" />
+                <div className="pointer-events-none absolute -inset-5 rounded-[1.8rem] border border-brand-200/60" />
                 <span className="float-chip absolute -left-5 top-8 z-10 select-none rounded-lg bg-white/95 px-2.5 py-1 font-mono text-xs font-bold text-brand-600 shadow-lift">{'</>'}</span>
                 <span className="float-chip absolute -right-4 top-1/3 z-10 select-none rounded-lg bg-white/95 px-2.5 py-1 font-mono text-xs font-bold text-accent-600 shadow-lift" style={{ animationDelay: '-1.8s' }}>λ</span>
                 <span className="float-chip absolute -bottom-4 left-1/4 z-10 select-none rounded-lg bg-white/95 px-2.5 py-1 font-mono text-xs font-bold text-emerald-600 shadow-lift" style={{ animationDelay: '-3.2s' }}>{'{ }'}</span>

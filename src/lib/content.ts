@@ -16,10 +16,12 @@ export function getLegalDoc(key: string): string | null {
   return pick(legalModules as Record<string, unknown>, key);
 }
 
-export function listLegalDocs(): { key: string; title: string }[] {
+export function listLegalDocs(): { key: string; title: string; chars: number }[] {
   return Object.keys(legalModules).map((p) => {
     const key = p.split('/').pop()!.replace('.md', '');
-    return { key, title: LEGAL_TITLES[key] || key };
+    const raw = legalModules[p] as string;
+    const chars = raw.replace(/[#*>\-|\s`()[\]:\/\.a-zA-Z0-9]/g, '').length;
+    return { key, title: LEGAL_TITLES[key] || key, chars };
   });
 }
 
@@ -29,6 +31,7 @@ export const LEGAL_TITLES: Record<string, string> = {
   'privacy-policy': '隐私政策',
   disclaimer: '免责声明',
   'ip-notice': '知识产权与版权声明',
+  'ip-complaint': '侵权投诉与维权指引',
   'refund-policy': '退款政策',
   'community-rules': '学术交流群社区规范',
   'minor-protection': '未成年人保护声明',

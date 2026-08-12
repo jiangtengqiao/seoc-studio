@@ -18,7 +18,7 @@ export default function Legal() {
               <li key={d.key}>
                 <Link to={`/legal/${d.key}`} className="flex items-center justify-between px-5 py-4 text-sm hover:bg-brand-50/50">
                   <span className="font-medium text-slate-800">{d.title}</span>
-                  <span className="text-xs text-slate-400">查看全文</span>
+                  <span className="text-xs text-slate-400">约 {d.chars.toLocaleString()} 字 · 查看全文</span>
                 </Link>
               </li>
             ))}
@@ -43,7 +43,19 @@ export default function Legal() {
       <div className="container-x max-w-3xl py-10">
         <article className="card p-6 sm:p-10">
           <div className="prose-seoc">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ href, children }) =>
+                  href && !href.includes('://') ? (
+                    <Link to={`/legal/${href}`} className="text-brand-600 hover:underline">{children}</Link>
+                  ) : (
+                    <a href={href} className="text-brand-600 hover:underline">{children}</a>
+                  )
+              }}
+            >
+              {md}
+            </ReactMarkdown>
           </div>
         </article>
         <p className="mt-6 text-sm">

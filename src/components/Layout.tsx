@@ -187,25 +187,44 @@ function LangMenu() {
   );
 }
 
-/** 「全部导航」折叠面板：悬浮或点击箭头展开分组快捷导航 */
+/** 「全部导航」折叠面板：悬浮或点击箭头展开分组快捷导航。
+ *  淡入淡出实现要点：外层负责水平定位（-translate-x-1/2，不参与动画），
+ *  内层只做透明度与纵向位移；关闭时先播放退出动画再卸载，避免闪跳。 */
 function MoreNav() {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [render, setRender] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unmountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const show = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
+    if (unmountTimer.current) clearTimeout(unmountTimer.current);
+    setRender(true);
     setOpen(true);
   };
   const hide = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setOpen(false), 140);
+    closeTimer.current = setTimeout(() => {
+      setOpen(false);
+      if (unmountTimer.current) clearTimeout(unmountTimer.current);
+      unmountTimer.current = setTimeout(() => setRender(false), 180);
+    }, 140);
+  };
+  const toggle = () => {
+    if (open) {
+      setOpen(false);
+      if (unmountTimer.current) clearTimeout(unmountTimer.current);
+      unmountTimer.current = setTimeout(() => setRender(false), 180);
+    } else {
+      show();
+    }
   };
 
   return (
     <div onMouseEnter={show} onMouseLeave={hide}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         aria-expanded={open}
         className={`flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
           open ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100'
@@ -224,48 +243,55 @@ function MoreNav() {
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-      {open && (
-        <div
-          className="menu-pop fixed left-1/2 top-16 z-50 w-[min(48rem,94vw)] -translate-x-1/2 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_24px_60px_-12px_rgba(30,58,138,0.25)] backdrop-blur"
-          onMouseEnter={show}
-          onMouseLeave={hide}
-        >
-          <div className="panel-strip" />
-          <div className="grid grid-cols-2 gap-x-5 gap-y-5 p-6 lg:grid-cols-4">
-            {MEGA_GROUPS.map((g, gi) => (
-              <div key={g.titleKey}>
-                <p className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  <span className={`h-1.5 w-1.5 rounded-full ${['bg-brand-500', 'bg-violet-500', 'bg-amber-500', 'bg-emerald-500'][gi]}`} />
-                  {t(g.titleKey)}
-                </p>
-                <ul className="space-y-1">
-                  {g.items.map((it) => (
-                    <li key={it.to}>
-                      <NavLink
-                        to={it.to}
-                        onClick={() => setOpen(false)}
-                        className="group flex items-start gap-2.5 rounded-xl px-2 py-2 transition hover:bg-gradient-to-r hover:from-brand-50 hover:to-transparent"
-                      >
-                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white group-hover:shadow-md">
-                          {MEGA_ICONS[it.icon]}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="flex items-center gap-1 text-sm font-medium text-slate-800 group-hover:text-brand-700">
-                            {t(it.key)}
-                            <span className="translate-x-0 text-brand-400 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100">→</span>
+      {render && (
+        <div className="fixed left-1/2 top-16 z-50 w-[min(48rem,94vw)] -translate-x-1/2">
+          <div
+            className={`overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_24px_60px_-12px_rgba(30,58,138,0.25)] backdrop-blur ${
+              open ? 'menu-pop' : 'menu-exit'
+            }`}
+            onMouseEnter={show}
+            onMouseLeave={hide}
+          >
+            <div className="panel-strip" />
+            <div className="grid grid-cols-2 gap-x-5 gap-y-5 p-6 lg:grid-cols-4">
+              {MEGA_GROUPS.map((g, gi) => (
+                <div key={g.titleKey}>
+                  <p className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <span className={`h-1.5 w-1.5 rounded-full ${['bg-brand-500', 'bg-violet-500', 'bg-amber-500', 'bg-emerald-500'][gi]}`} />
+                    {t(g.titleKey)}
+                  </p>
+                  <ul className="space-y-1">
+                    {g.items.map((it) => (
+                      <li key={it.to}>
+                        <NavLink
+                          to={it.to}
+                          onClick={() => {
+                            setOpen(false);
+                            setRender(false);
+                          }}
+                          className="group flex items-start gap-2.5 rounded-xl px-2 py-2 transition hover:bg-gradient-to-r hover:from-brand-50 hover:to-transparent"
+                        >
+                          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white group-hover:shadow-md">
+                            {MEGA_ICONS[it.icon]}
                           </span>
-                          <span className="mt-0.5 block text-xs leading-5 text-slate-400">{it.desc}</span>
-                        </span>
-                      </NavLink>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-3">
-            <SiteUptime />
-            <span className="text-xs text-slate-400">15 个快捷入口，悬浮或点击箭头展开</span>
+                          <span className="min-w-0">
+                            <span className="flex items-center gap-1 text-sm font-medium text-slate-800 group-hover:text-brand-700">
+                              {t(it.key)}
+                              <span className="translate-x-0 text-brand-400 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100">→</span>
+                            </span>
+                            <span className="mt-0.5 block text-xs leading-5 text-slate-400">{it.desc}</span>
+                          </span>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-3">
+              <SiteUptime />
+              <span className="text-xs text-slate-400">15 个快捷入口，悬浮或点击箭头展开</span>
+            </div>
           </div>
         </div>
       )}
