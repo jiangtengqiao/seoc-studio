@@ -51,6 +51,7 @@ export default function AIChat() {
     freeRemaining: number;
   } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -60,6 +61,7 @@ export default function AIChat() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [stickToBottom, setStickToBottom] = useState(true);
 
   // 会员等级信息
   const userTier: MembershipTier = (profile?.membership_tier as MembershipTier) || 'free';
@@ -123,10 +125,20 @@ export default function AIChat() {
     if (firstAvailable) setSelectedModel(firstAvailable.id);
   }, [models, effectiveTier, selectedModel]);
 
-  // 自动滚动到底部
+  // 自动滚动：只滚动消息容器（不再用 scrollIntoView，避免带动整个页面闪跳）。
+  // 用户向上翻看时停止跟随，滑回底部后恢复。
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    setStickToBottom(nearBottom);
+  };
+
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const el = scrollRef.current;
+    if (!el || !stickToBottom) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages, stickToBottom]);
 
   // 点击外部关闭模型下拉
   useEffect(() => {
@@ -163,6 +175,7 @@ export default function AIChat() {
     setCurrentConversationId(null);
     setSidebarOpen(false);
     setInterruptNotice(null);
+    setStickToBottom(true);
     inputRef.current?.focus();
   };
 
@@ -188,6 +201,7 @@ export default function AIChat() {
       }
       setCurrentConversationId(id);
       setInterruptNotice(null);
+      setStickToBottom(true);
     } catch {
       /* 忽略 */
     }
@@ -228,6 +242,7 @@ export default function AIChat() {
     setStreaming(true);
     setEstimatedCost(0);
     setInterruptNotice(null);
+    setStickToBottom(true);
 
     const userMsg: Message = { role: 'user', content: text };
     const assistantMsg: Message = { role: 'assistant', content: '' };
@@ -669,7 +684,11 @@ export default function AIChat() {
       )}
 
       {/* 消息列表 */}
-      <div className="ai-chat-scroll flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="ai-chat-scroll flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900"
+      >
         <div className="container-x py-6">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">

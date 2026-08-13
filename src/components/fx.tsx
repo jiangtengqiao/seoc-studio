@@ -5,6 +5,7 @@ import {
   type CSSProperties,
   type ReactNode
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export function useReveal<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
@@ -463,14 +464,16 @@ export function BackToTop() {
 
 /** 返回上一级按钮（用于子页面顶部） */
 export function BackButton({ to = -1, label = '返回', className = '' }: { to?: number | string; label?: string; className?: string }) {
+  const navigate = useNavigate();
   return (
     <button
       onClick={() => {
         if (typeof to === 'number') {
-          if (window.history.length > 1) window.history.back();
-          else window.location.hash = '#/';
+          // 修复：原先用 window.history.back()/location.hash，在 BrowserRouter 下完全无效
+          if (window.history.length > 1) navigate(-1);
+          else navigate('/');
         } else {
-          window.location.hash = `#${to}`;
+          navigate(to);
         }
       }}
       className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-300 ${className}`}

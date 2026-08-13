@@ -460,6 +460,8 @@ export interface AITopupOrder {
   status: 'pending' | 'confirmed' | 'rejected';
   note: string | null;
   admin_note?: string | null;
+  payment_claimed?: boolean;
+  payment_claimed_at?: string | null;
   created_at: string;
   confirmed_at: string | null;
   expires_at?: string | null;
@@ -541,6 +543,8 @@ export async function listAllTopupOrders(
     status: r.status as AITopupOrder['status'],
     note: (r.note as string | null) || null,
     admin_note: (r.admin_note as string | null) || null,
+    payment_claimed: Boolean(r.payment_claimed),
+    payment_claimed_at: (r.payment_claimed_at as string | null) || null,
     created_at: r.created_at as string,
     confirmed_at: (r.confirmed_at as string | null) || null,
     expires_at: (r.expires_at as string | null) || null,
@@ -618,32 +622,32 @@ export const TIER_INFO: Record<MembershipTier, { name: string; priceMonthly: num
   },
   lite: {
     name: 'Lite 会员',
-    priceMonthly: 19,
-    priceYearly: 128,
+    priceMonthly: 29,
+    priceYearly: 199,
     grantedPoints: 5000,
     color: 'blue',
     perks: ['解锁 7 个基础模型', '每月赠送 5000 研点', '每日免费额度', '聊天记录云同步', '基础 API 调用'],
   },
   plus: {
     name: 'Plus 会员',
-    priceMonthly: 39,
-    priceYearly: 268,
+    priceMonthly: 59,
+    priceYearly: 399,
     grantedPoints: 15000,
     color: 'purple',
     perks: ['解锁全部 10 个模型', '每月赠送 15000 研点', '更高每日免费额度', '聊天记录云同步', '优先 API 调用'],
   },
   pro: {
     name: 'Pro 会员',
-    priceMonthly: 79,
-    priceYearly: 588,
+    priceMonthly: 199,
+    priceYearly: 1399,
     grantedPoints: 40000,
     color: 'amber',
     perks: ['解锁全部 12 个模型含 R1 推理', '每月赠送 40000 研点', '聊天记录云同步', 'API 高频调用'],
   },
   max: {
     name: 'Max 会员',
-    priceMonthly: 128,
-    priceYearly: 998,
+    priceMonthly: 399,
+    priceYearly: 2999,
     grantedPoints: 80000,
     color: 'rose',
     perks: ['全部模型权益', '每月赠送 80000 研点', '聊天记录云同步', '专属客服通道'],
@@ -675,6 +679,8 @@ export interface AIMembershipOrder {
   status: 'pending' | 'confirmed' | 'rejected';
   note: string | null;
   admin_note?: string | null;
+  payment_claimed?: boolean;
+  payment_claimed_at?: string | null;
   created_at: string;
   confirmed_at: string | null;
   expires_at?: string | null;
@@ -746,6 +752,8 @@ export async function listAllMembershipOrders(
     status: r.status as AIMembershipOrder['status'],
     note: (r.note as string | null) || null,
     admin_note: (r.admin_note as string | null) || null,
+    payment_claimed: Boolean(r.payment_claimed),
+    payment_claimed_at: (r.payment_claimed_at as string | null) || null,
     created_at: r.created_at as string,
     confirmed_at: (r.confirmed_at as string | null) || null,
     expires_at: (r.expires_at as string | null) || null,
@@ -777,6 +785,21 @@ export async function cancelTopupOrder(id: string): Promise<void> {
 export async function cancelMembershipOrder(id: string): Promise<void> {
   if (!isCloudEnabled || !supabase) return;
   const { error } = await supabase.rpc('cancel_ai_membership_order', { p_order: id });
+  if (error) throw error;
+}
+
+/**
+ * 用户确认「我已支付」（人工确认制：管理员看到标记后点同意/驳回）
+ */
+export async function claimTopupOrderPaid(id: string): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  const { error } = await supabase.rpc('claim_ai_topup_order_paid', { p_order: id });
+  if (error) throw error;
+}
+
+export async function claimMembershipOrderPaid(id: string): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  const { error } = await supabase.rpc('claim_ai_membership_order_paid', { p_order: id });
   if (error) throw error;
 }
 

@@ -13,6 +13,8 @@ import {
   listMyMembershipOrders,
   cancelTopupOrder,
   cancelMembershipOrder,
+  claimTopupOrderPaid,
+  claimMembershipOrderPaid,
   isMembershipActive,
   TIER_INFO,
   type AIBalance,
@@ -86,9 +88,27 @@ export default function AICredits() {
     }
   };
 
+  const handleClaimTopupPaid = async (id: string) => {
+    try {
+      await claimTopupOrderPaid(id);
+      await loadData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleCancelMembership = async (id: string) => {
     try {
       await cancelMembershipOrder(id);
+      await loadData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleClaimMembershipPaid = async (id: string) => {
+    try {
+      await claimMembershipOrderPaid(id);
       await loadData();
     } catch (e) {
       console.error(e);
@@ -305,9 +325,9 @@ export default function AICredits() {
                 })}
                 <div className="text-xs leading-6 text-slate-500 dark:text-slate-400">
                   <p>支付时请在备注中填写您的<strong className="text-brand-700">注册邮箱</strong>，便于核验。</p>
-                  <p>支付完成后无需额外操作，管理员核验后会员自动开通、赠送研点自动入账。</p>
-                  <p>如长时间未开通，请将付款凭证发送至 jiangtengqiao@qq.com。</p>
-                  <p className="mt-1 text-amber-600 dark:text-amber-400">订单 30 分钟内未确认将自动取消。</p>
+                  <p>支付完成后请点击订单上的「我已支付」，管理员将在 24 小时内核验并回复（同意或驳回，在订单列表中可见）。</p>
+                  <p>如长时间未处理，请将付款凭证发送至 jiangtengqiao@qq.com。</p>
+                  <p className="mt-1 text-amber-600 dark:text-amber-400">订单 24 小时内未确认将自动取消。</p>
                 </div>
               </div>
             </div>
@@ -338,12 +358,24 @@ export default function AICredits() {
                             <Countdown expiresAt={o.expires_at} />
                           </td>
                           <td className="px-3 py-2 text-center">
-                            <button
-                              onClick={() => handleCancelMembership(o.id)}
-                              className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
-                            >
-                              取消
-                            </button>
+                            {o.payment_claimed ? (
+                              <span className="badge bg-emerald-50 text-emerald-600">已声称支付 · 等待核验</span>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleClaimMembershipPaid(o.id)}
+                                  className="mr-1.5 rounded-md border border-brand-200 px-2 py-1 text-xs text-brand-700 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-300 dark:hover:bg-brand-900/30"
+                                >
+                                  我已支付
+                                </button>
+                                <button
+                                  onClick={() => handleCancelMembership(o.id)}
+                                  className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
+                                >
+                                  取消
+                                </button>
+                              </>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -420,9 +452,9 @@ export default function AICredits() {
                 })}
                 <div className="text-xs leading-6 text-slate-500 dark:text-slate-400">
                   <p>支付时请在备注中填写您的<strong className="text-brand-700">注册邮箱</strong>，便于核验。</p>
-                  <p>支付完成后无需额外操作，管理员核验到账后研点自动入账。</p>
+                  <p>支付完成后请点击订单上的「我已支付」，管理员将在 24 小时内核验并回复。</p>
                   <p>如长时间未到账，请将付款凭证发送至 jiangtengqiao@qq.com。</p>
-                  <p className="mt-1 text-amber-600 dark:text-amber-400">订单 30 分钟内未确认将自动取消。</p>
+                  <p className="mt-1 text-amber-600 dark:text-amber-400">订单 24 小时内未确认将自动取消。</p>
                 </div>
               </div>
             </div>
@@ -451,12 +483,24 @@ export default function AICredits() {
                             <Countdown expiresAt={o.expires_at} />
                           </td>
                           <td className="px-3 py-2 text-center">
-                            <button
-                              onClick={() => handleCancelTopup(o.id)}
-                              className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
-                            >
-                              取消
-                            </button>
+                            {o.payment_claimed ? (
+                              <span className="badge bg-emerald-50 text-emerald-600">已声称支付 · 等待核验</span>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleClaimTopupPaid(o.id)}
+                                  className="mr-1.5 rounded-md border border-brand-200 px-2 py-1 text-xs text-brand-700 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-300 dark:hover:bg-brand-900/30"
+                                >
+                                  我已支付
+                                </button>
+                                <button
+                                  onClick={() => handleCancelTopup(o.id)}
+                                  className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 transition hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
+                                >
+                                  取消
+                                </button>
+                              </>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -615,12 +659,18 @@ function Countdown({ expiresAt }: { expiresAt: string | null | undefined }) {
   if (!expiresAt) return <span className="text-xs text-slate-400">-</span>;
   if (remaining <= 0) return <span className="badge bg-red-50 text-red-600">已过期</span>;
 
-  const m = Math.floor(remaining / 60);
+  const d = Math.floor(remaining / 86400);
+  const h = Math.floor((remaining % 86400) / 3600);
+  const m = Math.floor((remaining % 3600) / 60);
   const s = remaining % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
   return (
     <span className="order-countdown text-xs text-amber-600">
-      <span className="num">{String(m).padStart(2, '0')}</span>:
-      <span className="num">{String(s).padStart(2, '0')}</span>
+      {d > 0 && <span className="num">{d}</span>}
+      {d > 0 && '天 '}
+      <span className="num">{pad(h)}</span>:
+      <span className="num">{pad(m)}</span>:
+      <span className="num">{pad(s)}</span>
     </span>
   );
 }

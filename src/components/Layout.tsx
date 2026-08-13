@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useTheme, type ThemeMode } from '../lib/theme';
 import { LANGS, useI18n } from '../lib/i18n';
@@ -306,6 +306,7 @@ export default function Layout() {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const location = useLocation();
 
   // 登录后：拉取未读通知数 + 触发会员到期提醒检查（安全定义者函数只处理本人）
   useEffect(() => {
@@ -314,16 +315,31 @@ export default function Layout() {
       return;
     }
     let alive = true;
+    const refreshUnread = () => {
+      getUnreadNotificationCount()
+        .then((n) => {
+          if (alive) setUnread(n);
+        })
+        .catch(() => {});
+    };
     checkMembershipReminders().catch(() => {});
-    getUnreadNotificationCount()
-      .then((n) => {
-        if (alive) setUnread(n);
-      })
-      .catch(() => {});
+    refreshUnread();
+    // 通知页标记已读后派发的事件，实时刷新角标
+    const onNotifyUpdate = () => refreshUnread();
+    window.addEventListener('seoc:notify-update', onNotifyUpdate);
     return () => {
       alive = false;
+      window.removeEventListener('seoc:notify-update', onNotifyUpdate);
     };
   }, [profile]);
+
+  // 路由变化时刷新未读数（例如从通知页返回）
+  useEffect(() => {
+    if (!profile) return;
+    getUnreadNotificationCount()
+      .then(setUnread)
+      .catch(() => {});
+  }, [location.pathname, profile]);
 
   return (
     <div className="flex min-h-screen flex-col">

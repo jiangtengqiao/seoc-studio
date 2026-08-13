@@ -381,7 +381,7 @@ export default function AIAdminPanel() {
             <div className="border-b border-slate-100 px-6 py-4">
               <h3 className="text-base font-semibold text-slate-800">会员开通确认</h3>
               <p className="text-xs text-slate-400">
-                核验付款到账后确认：会员自动开通（续费顺延）、赠送研点入账、站内信通知用户；驳回则订单关闭。
+                用户点击「我已支付」后显示绿色标记。核验付款到账后确认：会员自动开通（续费顺延）、赠送研点入账、站内信通知用户；驳回则订单关闭。
               </p>
             </div>
             {membershipOrders.length === 0 ? (
@@ -402,7 +402,12 @@ export default function AIAdminPanel() {
                   <tbody>
                     {membershipOrders.map((o) => (
                       <tr key={o.id} className="border-t border-slate-100 hover:bg-slate-50">
-                        <td className="px-4 py-3 text-slate-700">{o.email || '-'}</td>
+                        <td className="px-4 py-3 text-slate-700">
+                          <p>{o.email || '-'}</p>
+                          {o.payment_claimed && (
+                            <span className="badge bg-emerald-50 text-emerald-600">已声称支付</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <span className="badge bg-brand-50 text-brand-700">{TIER_INFO[o.tier].name}</span>
                           <span className="ml-1 text-xs text-slate-400">{o.period === 'monthly' ? '月付' : '年付'}</span>
@@ -443,7 +448,9 @@ export default function AIAdminPanel() {
           <div className="card overflow-hidden">
             <div className="border-b border-slate-100 px-6 py-4">
               <h3 className="text-base font-semibold text-slate-800">研点充值确认</h3>
-              <p className="text-xs text-slate-400">核验付款到账后确认：研点自动入账并站内信通知用户。</p>
+              <p className="text-xs text-slate-400">
+                用户点击「我已支付」后显示绿色标记。核验付款到账后确认：研点自动入账并站内信通知用户。
+              </p>
             </div>
             {topupOrders.length === 0 ? (
               <div className="p-8 text-center text-sm text-slate-400">暂无待确认的充值订单。</div>
@@ -462,7 +469,12 @@ export default function AIAdminPanel() {
                   <tbody>
                     {topupOrders.map((o) => (
                       <tr key={o.id} className="border-t border-slate-100 hover:bg-slate-50">
-                        <td className="px-4 py-3 text-slate-700">{o.email || '-'}</td>
+                        <td className="px-4 py-3 text-slate-700">
+                          <p>{o.email || '-'}</p>
+                          {o.payment_claimed && (
+                            <span className="badge bg-emerald-50 text-emerald-600">已声称支付</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-right text-slate-700">{o.yuan} 元</td>
                         <td className="px-4 py-3 text-right text-slate-700">{o.points.toLocaleString()}</td>
                         <td className="px-4 py-3 text-slate-500">{new Date(o.created_at).toLocaleString('zh-CN')}</td>

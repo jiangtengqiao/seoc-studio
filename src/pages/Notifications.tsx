@@ -35,6 +35,7 @@ export default function Notifications() {
   const handleRead = async (n: AINotification) => {
     if (n.read) return;
     setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+    window.dispatchEvent(new CustomEvent('seoc:notify-update'));
     try {
       await markNotificationRead(n.id);
     } catch {
@@ -44,6 +45,7 @@ export default function Notifications() {
 
   const handleReadAll = async () => {
     setItems((prev) => prev.map((x) => ({ ...x, read: true })));
+    window.dispatchEvent(new CustomEvent('seoc:notify-update'));
     try {
       await markAllNotificationsRead();
     } catch {
