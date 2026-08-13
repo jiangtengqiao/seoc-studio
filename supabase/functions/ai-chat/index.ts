@@ -1,5 +1,10 @@
 // SEOC Studio 研智助手 - AI 聊天 Edge Function
 // 支持流式 SSE、实时 token 监测、余额不足强制中断
+// v7 加固：
+//  - 服务端输入长度/token 上限（防免费额度无限长输入刷成本）
+//  - 原子扣费（spend_ai_credits / spend_ai_free_quota RPC，防并发透支）
+//  - 客户端断开（停止生成）时中断上游并做部分结算
+//  - 每用户每分钟请求限流
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
   callProviderStream,
@@ -11,12 +16,19 @@ import {
   type ModelConfig,
   type ChatMessage,
   type StreamChunk,
+  type TokenUsage,
 } from '../_shared/ai-providers.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// 服务端护栏
+const MAX_INPUT_CHARS = 20000; // 单条消息最大字符数
+const MAX_INPUT_TOKENS = 16000; // 历史总输入 token 上限
+const MAX_OUTPUT_TOKENS = 4096; // 单次回复输出上限（厂商 max_tokens）
+const RATE_LIMIT_PER_MIN = 15; // 每用户每分钟最多请求数
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -48,12 +60,58 @@ Deno.serve(async (req) => {
     const userId = userData.user.id;
 
     // 2. 解析请求
-    const { model: modelId, messages } = await req.json();
+    let parsed: { model?: string; messages?: ChatMessage[] };
+    try {
+      parsed = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: '请求体不是合法 JSON' }), {
+        status: 400,
+        headers: { ...cors, 'Content-Type': 'application/json' },
+      });
+    }
+    const { model: modelId, messages } = parsed;
     if (!modelId || !messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: '参数不完整' }), {
         status: 400,
         headers: { ...cors, 'Content-Type': 'application/json' },
       });
+    }
+
+    // 2.5 输入护栏：角色白名单 + 长度/token 上限
+    for (const m of messages) {
+      if (!['system', 'user', 'assistant'].includes(m.role)) {
+        return new Response(JSON.stringify({ error: '消息角色不合法' }), {
+          status: 400,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+        });
+      }
+      if (typeof m.content !== 'string' || m.content.length > MAX_INPUT_CHARS) {
+        return new Response(
+          JSON.stringify({ error: `单条消息不能超过 ${MAX_INPUT_CHARS} 字符` }),
+          { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    const totalInputTokens = estimateTokens(messages.map((m) => m.content).join(''));
+    if (totalInputTokens > MAX_INPUT_TOKENS) {
+      return new Response(
+        JSON.stringify({ error: `输入过长（约 ${totalInputTokens} token，上限 ${MAX_INPUT_TOKENS}）` }),
+        { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 2.6 速率限制：按最近 1 分钟 usage_logs 计数
+    const oneMinAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const { count: recentCount } = await adminClient
+      .from('ai_usage_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', oneMinAgo);
+    if ((recentCount || 0) >= RATE_LIMIT_PER_MIN) {
+      return new Response(
+        JSON.stringify({ error: '请求过于频繁，请稍后再试', code: 'rate_limited' }),
+        { status: 429, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
     }
 
     // 3. 查询模型配置
@@ -122,7 +180,6 @@ Deno.serve(async (req) => {
     }
 
     // 5. 预检：余额 + 免费额度均为 0 时拒绝
-    const totalAvailable = balance + (freeRemaining > 0 ? 99999 : 0); // 有免费额度时不限制
     if (balance <= 0 && freeRemaining <= 0 && model.input_price + model.output_price > 0) {
       return new Response(
         JSON.stringify({ error: '研点不足', balance, free_remaining: freeRemaining }),
@@ -132,7 +189,9 @@ Deno.serve(async (req) => {
 
     // 6. 获取厂商 API Key 并发起流式调用
     const providerApiKey = getProviderApiKey(model.provider);
-    const stream = await callProviderStream(model, messages as ChatMessage[], providerApiKey);
+    const stream = await callProviderStream(model, messages as ChatMessage[], providerApiKey, {
+      maxTokens: MAX_OUTPUT_TOKENS,
+    });
 
     // 7. 流式 SSE 输出 + 实时监测
     const reader = stream.getReader();
@@ -140,14 +199,89 @@ Deno.serve(async (req) => {
     let estimatedOutputTokens = 0;
     let chunkCount = 0;
     let interrupted = false;
-    let finalUsage = null;
+    let finalUsage: TokenUsage | null = null;
+    let settled = false; // 防止重复结算
 
     const encoder = new TextEncoder();
 
+    // 结算：扣费 + 记录日志/流水。safeEnqueue 保证客户端断开后也不会抛错。
+    const settle = async (): Promise<{ cost: number; isFree: boolean; balance: number; freeRemaining: number } | null> => {
+      if (settled) return null;
+      settled = true;
+
+      const inputTokens = finalUsage?.input_tokens || totalInputTokens;
+      const outputTokens = finalUsage?.output_tokens || estimatedOutputTokens;
+      const cost = calculateCost(inputTokens, outputTokens, model.input_price, model.output_price);
+
+      let isFree = false;
+
+      if (freeRemaining > 0 && !interrupted) {
+        // 走免费额度（原子扣减一次）
+        const { data: newFree } = await adminClient.rpc('spend_ai_free_quota', { p_user: userId });
+        if (typeof newFree === 'number' && newFree >= 0) {
+          isFree = true;
+          freeRemaining = newFree;
+        } else {
+          // 免费额度竞争失败：转为余额扣费
+          const { data: newBalance } = await adminClient.rpc('spend_ai_credits', {
+            p_user: userId,
+            p_cost: cost,
+          });
+          if (typeof newBalance === 'number' && newBalance >= 0) balance = newBalance;
+          else balance = Math.max(0, balance - cost);
+        }
+      } else if (cost > 0) {
+        // 从余额原子扣费
+        const { data: newBalance } = await adminClient.rpc('spend_ai_credits', {
+          p_user: userId,
+          p_cost: cost,
+        });
+        if (typeof newBalance === 'number' && newBalance >= 0) balance = newBalance;
+        else balance = Math.max(0, balance - cost);
+      }
+
+      // 记录使用日志
+      try {
+        await adminClient.from('ai_usage_logs').insert({
+          user_id: userId,
+          model_id: model.id,
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+          cost,
+          is_free: isFree,
+          interrupted,
+        });
+      } catch (_) {
+        // 日志失败不阻断响应
+      }
+
+      // 记录交易流水（非免费时）
+      if (!isFree && cost > 0) {
+        try {
+          await adminClient.from('ai_transactions').insert({
+            user_id: userId,
+            amount: -cost,
+            type: 'consumption',
+            note: `使用 ${model.id}，输入 ${inputTokens} token，输出 ${outputTokens} token${interrupted ? '（中断）' : ''}`,
+          });
+        } catch (_) {
+          // 流水失败不阻断响应
+        }
+      }
+
+      return { cost, isFree, balance, freeRemaining };
+    };
+
     const sseStream = new ReadableStream({
       async start(controller) {
+        let closed = false;
         const sendEvent = (data: object) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+          if (closed) return;
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+          } catch {
+            closed = true;
+          }
         };
 
         try {
@@ -164,9 +298,8 @@ Deno.serve(async (req) => {
               // 估算 token（每 10 个 chunk 或每积累约 500 字符时重新估算）
               if (chunkCount % 10 === 0 || accumulatedOutput.length % 500 < chunk.delta.length) {
                 estimatedOutputTokens = estimateTokens(accumulatedOutput);
-                const inputEstimate = estimateTokens(messages.map((m: ChatMessage) => m.content).join(''));
                 const currentCost = calculateCost(
-                  inputEstimate,
+                  totalInputTokens,
                   estimatedOutputTokens,
                   model.input_price,
                   model.output_price
@@ -180,20 +313,19 @@ Deno.serve(async (req) => {
                   estimated_tokens: estimatedOutputTokens,
                 });
 
-                // 余额检查（仅对付费模型）
-                if (model.input_price + model.output_price > 0) {
-                  const availableForPaid = freeRemaining > 0
-                    ? Infinity  // 有免费额度时不限制
-                    : balance;
-                  if (currentCost > availableForPaid) {
+                // 余额检查（仅对付费模型，且有余额上限时）
+                if (model.input_price + model.output_price > 0 && balance > 0 && freeRemaining <= 0) {
+                  if (currentCost > balance) {
                     interrupted = true;
+                    // 先结算（部分输出按实际消耗扣费）
+                    const settledInfo = await settle();
                     sendEvent({
                       type: 'interrupted',
                       reason: '研点不足',
                       tokens_used: estimatedOutputTokens,
                       cost: Math.round(currentCost * 10000) / 10000,
-                      balance,
-                      free_remaining: freeRemaining,
+                      balance: settledInfo?.balance ?? 0,
+                      free_remaining: settledInfo?.freeRemaining ?? 0,
                     });
                     break;
                   }
@@ -214,70 +346,58 @@ Deno.serve(async (req) => {
             }
           }
 
-          // 8. 计费：使用精确 usage 或估算值
-          const inputTokens = finalUsage?.input_tokens || estimateTokens(messages.map((m: ChatMessage) => m.content).join(''));
-          const outputTokens = finalUsage?.output_tokens || estimatedOutputTokens;
-          const cost = calculateCost(inputTokens, outputTokens, model.input_price, model.output_price);
-
-          let isFree = false;
-          let deductedFromFree = 0;
-          let deductedFromBalance = 0;
-
-          if (freeRemaining > 0 && !interrupted) {
-            // 走免费额度
-            isFree = true;
-            freeRemaining = Math.max(0, freeRemaining - 1);
-            await adminClient
-              .from('ai_credits')
-              .update({ free_remaining: freeRemaining, updated_at: new Date().toISOString() })
-              .eq('user_id', userId);
-          } else if (cost > 0) {
-            // 从余额扣费
-            balance = Math.max(0, balance - cost);
-            deductedFromBalance = cost;
-            await adminClient
-              .from('ai_credits')
-              .update({ balance, updated_at: new Date().toISOString() })
-              .eq('user_id', userId);
-          }
-
-          // 9. 记录使用日志
-          await adminClient.from('ai_usage_logs').insert({
-            user_id: userId,
-            model_id: model.id,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-            cost,
-            is_free: isFree,
-            interrupted,
-          });
-
-          // 10. 记录交易流水（非免费时）
-          if (!isFree && cost > 0) {
-            await adminClient.from('ai_transactions').insert({
-              user_id: userId,
-              amount: -cost,
-              type: 'consumption',
-              note: `使用 ${model.id}，输入 ${inputTokens} token，输出 ${outputTokens} token`,
+          // 8. 正常完成：结算并发送 done 事件
+          //    中断路径已在上面结算并发送 interrupted 事件，这里不再重复。
+          if (!settled) {
+            const settledInfo = await settle();
+            sendEvent({
+              type: 'done',
+              usage: {
+                input_tokens: finalUsage?.input_tokens || totalInputTokens,
+                output_tokens: finalUsage?.output_tokens || estimatedOutputTokens,
+              },
+              cost: Math.round((settledInfo?.cost ?? 0) * 10000) / 10000,
+              is_free: settledInfo?.isFree ?? false,
+              interrupted,
+              balance: settledInfo?.balance ?? balance,
+              free_remaining: settledInfo?.freeRemaining ?? freeRemaining,
             });
           }
 
-          // 11. 发送完成事件
-          sendEvent({
-            type: 'done',
-            usage: { input_tokens: inputTokens, output_tokens: outputTokens },
-            cost: Math.round(cost * 10000) / 10000,
-            is_free: isFree,
-            interrupted,
-            balance,
-            free_remaining: freeRemaining,
-          });
-
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          controller.close();
+          sendEvent({ type: 'eof' });
+          if (!closed) {
+            try {
+              controller.close();
+            } catch {
+              /* 已关闭 */
+            }
+          }
         } catch (err) {
+          // 上游异常或客户端取消：有部分输出则做部分结算
+          if (accumulatedOutput) {
+            interrupted = true;
+            try {
+              await settle();
+            } catch {
+              /* 结算失败不阻断 */
+            }
+          }
           sendEvent({ type: 'error', message: String(err?.message || err) });
-          controller.close();
+          if (!closed) {
+            try {
+              controller.close();
+            } catch {
+              /* 已关闭 */
+            }
+          }
+        }
+      },
+      // 客户端断开（停止生成）：中断上游读取
+      async cancel() {
+        try {
+          await reader.cancel();
+        } catch {
+          /* 忽略 */
         }
       },
     });

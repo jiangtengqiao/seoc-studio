@@ -1,145 +1,73 @@
-// SEOC Studio API 开放平台 - OpenAI 兼容代理（控制台部署版，内联 _shared）
-// POST /v1/chat/completions
+// SEOC Studio API 开放平台 - OpenAI 兼容代理
+// POST /v1/chat/completions · GET /v1/models
 // 认证：Authorization: Bearer sk-seoc-xxxx
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-// ============================================================
-// 内联：ai-providers.ts（厂商适配器与计费）
-// ============================================================
-interface ChatMessage { role: 'system' | 'user' | 'assistant'; content: string; }
-interface ModelConfig {
-  id: string; provider: string; display_name: Record<string, string>;
-  input_price: number; output_price: number; free_daily_quota: number; min_tier: string; enabled: boolean;
-}
-interface TokenUsage { input_tokens: number; output_tokens: number; }
-interface ProviderResponse { content: string; usage: TokenUsage | null; finish_reason: string | null; }
-interface StreamChunk { delta: string; usage: TokenUsage | null; finish_reason: string | null; }
-
-// 会员等级排序（free < lite < plus < pro < max）
-const TIER_ORDER: Record<string, number> = { free: 0, lite: 1, plus: 2, pro: 3, max: 4 };
-
-// 校验用户会员等级是否达到模型要求（服务端强制）
-function canUseModelWithTier(userTier: string, membershipExpiresAt: string | null, modelMinTier: string): { ok: boolean; reason?: string } {
-  if (modelMinTier === 'free') return { ok: true };
-  if (!userTier || userTier === 'free') return { ok: false, reason: `需开通 ${modelMinTier.toUpperCase()} 及以上会员` };
-  if (membershipExpiresAt && new Date(membershipExpiresAt).getTime() <= Date.now()) return { ok: false, reason: '会员已过期，请续费' };
-  const userLevel = TIER_ORDER[userTier] ?? 0;
-  const modelLevel = TIER_ORDER[modelMinTier] ?? 0;
-  if (userLevel < modelLevel) return { ok: false, reason: `该模型需要 ${modelMinTier.toUpperCase()} 及以上会员` };
-  return { ok: true };
-}
-
-const PROVIDER_ENDPOINTS: Record<string, string> = {
-  bytedance: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
-  // 千问：阿里云百炼专属网关地址（用户专属 MaaS 网关，非默认 dashscope 域名）
-  alibaba: 'https://ws-jiofwcml2nqy8gqe.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions',
-  zhipu: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-  deepseek: 'https://api.deepseek.com/v1/chat/completions',
-};
-
-const PROVIDER_ENV_KEYS: Record<string, string> = {
-  bytedance: 'DOUBAO_API_KEY',
-  alibaba: 'QWEN_API_KEY',
-  zhipu: 'ZHIPU_API_KEY',
-  deepseek: 'DEEPSEEK_API_KEY',
-};
-
-async function callProvider(model: ModelConfig, messages: ChatMessage[], apiKey: string): Promise<ProviderResponse> {
-  const url = PROVIDER_ENDPOINTS[model.provider];
-  if (!url) throw new Error(`不支持的厂商: ${model.provider}`);
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: model.id, messages, stream: false }),
-  });
-  if (!res.ok) { const text = await res.text(); throw new Error(`厂商 API 错误 (${res.status}): ${text}`); }
-  const data = await res.json();
-  const choice = data.choices?.[0];
-  return {
-    content: choice?.message?.content || '',
-    usage: data.usage ? { input_tokens: data.usage.prompt_tokens, output_tokens: data.usage.completion_tokens } : null,
-    finish_reason: choice?.finish_reason || null,
-  };
-}
-
-async function callProviderStream(model: ModelConfig, messages: ChatMessage[], apiKey: string): Promise<ReadableStream<StreamChunk>> {
-  const url = PROVIDER_ENDPOINTS[model.provider];
-  if (!url) throw new Error(`不支持的厂商: ${model.provider}`);
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: model.id, messages, stream: true }),
-  });
-  if (!res.ok) { const text = await res.text(); throw new Error(`厂商 API 错误 (${res.status}): ${text}`); }
-  const reader = res.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  return new ReadableStream<StreamChunk>({
-    async pull(controller) {
-      try {
-        const { done, value } = await reader.read();
-        if (done) { controller.close(); return; }
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data:')) continue;
-          const payload = trimmed.slice(5).trim();
-          if (payload === '[DONE]') { controller.close(); return; }
-          try {
-            const json = JSON.parse(payload);
-            const choice = json.choices?.[0];
-            const delta = choice?.delta?.content || '';
-            const finishReason = choice?.finish_reason || null;
-            const usage = json.usage ? { input_tokens: json.usage.prompt_tokens, output_tokens: json.usage.completion_tokens } : null;
-            controller.enqueue({ delta, usage, finish_reason: finishReason });
-          } catch { /* 跳过无法解析的行 */ }
-        }
-      } catch (err) { controller.error(err); }
-    },
-    cancel() { reader.cancel(); },
-  });
-}
-
-function getProviderApiKey(provider: string): string {
-  const envKey = PROVIDER_ENV_KEYS[provider];
-  if (!envKey) throw new Error(`未知厂商: ${provider}`);
-  const key = Deno.env.get(envKey);
-  if (!key) throw new Error(`环境变量 ${envKey} 未配置`);
-  return key;
-}
-
-function calculateCost(inputTokens: number, outputTokens: number, inputPrice: number, outputPrice: number): number {
-  return (inputTokens / 1000) * inputPrice + (outputTokens / 1000) * outputPrice;
-}
-
-function estimateTokens(text: string): number {
-  let cjk = 0; let ascii = 0;
-  for (const ch of text) { if (ch.charCodeAt(0) > 127) cjk++; else ascii++; }
-  return Math.ceil(cjk / 1.5) + Math.ceil(ascii / 4);
-}
-// === 内联结束 ===
-
+// v7 加固：
+//  - GET /v1/models 支持（OpenAI 客户端兼容）
+//  - max_tokens / temperature / top_p 透传（输出上限钳制）
+//  - 服务端输入长度/token 上限
+//  - 原子扣费（spend_ai_credits RPC，防并发透支）
+//  - 每用户每分钟请求限流
+//  - 客户端断开时中断上游并做部分结算
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// 服务端护栏
+const MAX_INPUT_CHARS = 20000; // 单条消息最大字符数
+const MAX_INPUT_TOKENS = 16000; // 历史总输入 token 上限
+const MAX_OUTPUT_TOKENS = 8192; // 单次输出上限（OpenAI max_tokens 钳制）
+const RATE_LIMIT_PER_MIN = 30; // 每用户每分钟 API 请求上限
+
+/**
+ * SHA-256 哈希
+ */
 async function sha256(text: string): Promise<string> {
   const buf = new TextEncoder().encode(text);
   const hash = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
+
+const jsonHeaders = { ...cors, 'Content-Type': 'application/json' };
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
-  const jsonHeaders = { ...cors, 'Content-Type': 'application/json' };
 
   try {
+    // 0. GET /v1/models：OpenAI 兼容模型列表
+    const path = new URL(req.url).pathname;
+    if (req.method === 'GET' && path.endsWith('/v1/models')) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+      const { data: models } = await adminClient
+        .from('ai_models')
+        .select('id, display_name, enabled')
+        .eq('enabled', true)
+        .order('sort_order');
+      return new Response(
+        JSON.stringify({
+          object: 'list',
+          data: (models || []).map((m: { id: string; display_name: Record<string, string> }) => ({
+            id: m.id,
+            object: 'model',
+            created: 0,
+            owned_by: 'seoc-studio',
+          })),
+        }),
+        { headers: jsonHeaders }
+      );
+    }
+
+    // 1. API Key 认证
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: { message: '缺少 API Key', type: 'authentication_error' } }), { status: 401, headers: jsonHeaders });
+      return new Response(
+        JSON.stringify({ error: { message: '缺少 API Key', type: 'authentication_error' } }),
+        { status: 401, headers: jsonHeaders }
+      );
     }
 
     const rawKey = authHeader.slice(7).trim();
@@ -149,86 +77,319 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: keyRow } = await adminClient.from('ai_api_keys').select('id, user_id').eq('key_hash', keyHash).maybeSingle();
-    if (!keyRow) return new Response(JSON.stringify({ error: { message: 'API Key 无效', type: 'authentication_error' } }), { status: 401, headers: jsonHeaders });
+    // 查询 API Key
+    const { data: keyRow } = await adminClient
+      .from('ai_api_keys')
+      .select('id, user_id')
+      .eq('key_hash', keyHash)
+      .maybeSingle();
+
+    if (!keyRow) {
+      return new Response(
+        JSON.stringify({ error: { message: 'API Key 无效', type: 'authentication_error' } }),
+        { status: 401, headers: jsonHeaders }
+      );
+    }
 
     const userId = keyRow.user_id;
     const apiKeyId = keyRow.id;
-    await adminClient.from('ai_api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', apiKeyId);
 
-    const body = await req.json();
-    const { model: modelId, messages, stream: wantStream = true } = body;
-    if (!modelId || !messages || !Array.isArray(messages)) {
-      return new Response(JSON.stringify({ error: { message: '参数不完整', type: 'invalid_request_error' } }), { status: 400, headers: jsonHeaders });
+    // 更新 last_used_at
+    await adminClient
+      .from('ai_api_keys')
+      .update({ last_used_at: new Date().toISOString() })
+      .eq('id', apiKeyId);
+
+    // 1.5 速率限制
+    const oneMinAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const { count: recentCount } = await adminClient
+      .from('ai_usage_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', oneMinAgo);
+    if ((recentCount || 0) >= RATE_LIMIT_PER_MIN) {
+      return new Response(
+        JSON.stringify({
+          error: { message: '请求过于频繁，请稍后再试', type: 'rate_limit_error' },
+        }),
+        { status: 429, headers: jsonHeaders }
+      );
     }
 
-    const { data: modelData } = await adminClient.from('ai_models').select('*').eq('id', modelId).eq('enabled', true).maybeSingle();
-    if (!modelData) return new Response(JSON.stringify({ error: { message: '模型不存在或已禁用', type: 'invalid_request_error' } }), { status: 404, headers: jsonHeaders });
+    // 2. 解析 OpenAI 格式请求
+    let body: {
+      model?: string;
+      messages?: ChatMessage[];
+      stream?: boolean;
+      max_tokens?: number;
+      temperature?: number;
+      top_p?: number;
+    };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: { message: '请求体不是合法 JSON', type: 'invalid_request_error' } }),
+        { status: 400, headers: jsonHeaders }
+      );
+    }
+
+    const { model: modelId, messages, stream: wantStream = true } = body;
+
+    if (!modelId || !messages || !Array.isArray(messages) || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: { message: '参数不完整', type: 'invalid_request_error' } }),
+        { status: 400, headers: jsonHeaders }
+      );
+    }
+
+    // 2.5 输入护栏
+    for (const m of messages) {
+      if (!['system', 'user', 'assistant'].includes(m.role)) {
+        return new Response(
+          JSON.stringify({ error: { message: '消息角色不合法', type: 'invalid_request_error' } }),
+          { status: 400, headers: jsonHeaders }
+        );
+      }
+      if (typeof m.content !== 'string' || m.content.length > MAX_INPUT_CHARS) {
+        return new Response(
+          JSON.stringify({
+            error: { message: `单条消息不能超过 ${MAX_INPUT_CHARS} 字符`, type: 'invalid_request_error' },
+          }),
+          { status: 400, headers: jsonHeaders }
+        );
+      }
+    }
+    const totalInputTokens = estimateTokens(messages.map((m) => m.content).join(''));
+    if (totalInputTokens > MAX_INPUT_TOKENS) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: `输入过长（约 ${totalInputTokens} token，上限 ${MAX_INPUT_TOKENS}）`,
+            type: 'invalid_request_error',
+          },
+        }),
+        { status: 400, headers: jsonHeaders }
+      );
+    }
+
+    // 输出上限钳制（透传客户端参数，但不超过服务端上限）
+    const maxTokens = Math.min(body.max_tokens || MAX_OUTPUT_TOKENS, MAX_OUTPUT_TOKENS);
+
+    // 3. 查询模型
+    const { data: modelData } = await adminClient
+      .from('ai_models')
+      .select('*')
+      .eq('id', modelId)
+      .eq('enabled', true)
+      .maybeSingle();
+
+    if (!modelData) {
+      return new Response(
+        JSON.stringify({ error: { message: '模型不存在或已禁用', type: 'invalid_request_error' } }),
+        { status: 404, headers: jsonHeaders }
+      );
+    }
     const model = modelData as unknown as ModelConfig;
 
-    // 会员等级校验（API 调用同样受会员门槛限制）
-    const { data: profileData } = await adminClient.from('profiles').select('membership_tier, membership_expires_at').eq('id', userId).maybeSingle();
+    // 3.5 会员等级校验（API 调用同样受会员门槛限制）
+    const { data: profileData } = await adminClient
+      .from('profiles')
+      .select('membership_tier, membership_expires_at')
+      .eq('id', userId)
+      .maybeSingle();
     const userTier = (profileData?.membership_tier as string) || 'free';
     const membershipExpiresAt = (profileData?.membership_expires_at as string) || null;
     const tierCheck = canUseModelWithTier(userTier, membershipExpiresAt, model.min_tier || 'lite');
     if (!tierCheck.ok) {
-      return new Response(JSON.stringify({ error: { message: tierCheck.reason, type: 'membership_required', code: 'membership_required' } }), { status: 403, headers: jsonHeaders });
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: tierCheck.reason,
+            type: 'membership_required',
+            code: 'membership_required',
+          },
+        }),
+        { status: 403, headers: jsonHeaders }
+      );
     }
 
-    const { data: creditsData } = await adminClient.from('ai_credits').select('balance').eq('user_id', userId).maybeSingle();
+    // 4. 查询余额（API 调用无免费额度）
+    const { data: creditsData } = await adminClient
+      .from('ai_credits')
+      .select('balance')
+      .eq('user_id', userId)
+      .maybeSingle();
+
     const balance = Number(creditsData?.balance || 0);
 
     if (balance <= 0 && model.input_price + model.output_price > 0) {
-      return new Response(JSON.stringify({ error: { message: '研点不足', type: 'insufficient_quota', balance } }), { status: 402, headers: jsonHeaders });
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: '研点不足',
+            type: 'insufficient_quota',
+            balance,
+          },
+        }),
+        { status: 402, headers: jsonHeaders }
+      );
     }
 
+    // 记录用量日志 + 交易流水（服务端统一记账）
+    const recordUsage = async (inputTokens: number, outputTokens: number, cost: number, isInterrupted: boolean) => {
+      try {
+        await adminClient.from('ai_usage_logs').insert({
+          user_id: userId,
+          model_id: model.id,
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+          cost,
+          is_free: false,
+          api_key_id: apiKeyId,
+          interrupted: isInterrupted,
+        });
+      } catch (_) {
+        // 日志失败不阻断响应
+      }
+      if (cost > 0) {
+        try {
+          await adminClient.from('ai_transactions').insert({
+            user_id: userId,
+            amount: -cost,
+            type: 'consumption',
+            note: `API 调用 ${model.id}，输入 ${inputTokens} token，输出 ${outputTokens} token${isInterrupted ? '（中断）' : ''}`,
+          });
+        } catch (_) {
+          // 流水失败不阻断响应
+        }
+      }
+    };
+
+    // 原子扣费：返回扣费后的余额；余额不足返回 -1
+    const spend = async (cost: number): Promise<number> => {
+      const { data: newBalance } = await adminClient.rpc('spend_ai_credits', {
+        p_user: userId,
+        p_cost: cost,
+      });
+      if (typeof newBalance === 'number' && newBalance >= 0) return newBalance;
+      return -1;
+    };
+
+    // 5. 调用厂商 API
     const providerApiKey = getProviderApiKey(model.provider);
+    const providerOpts = {
+      maxTokens,
+      temperature: body.temperature,
+      topP: body.top_p,
+    };
 
     if (!wantStream) {
-      const result = await callProvider(model, messages as ChatMessage[], providerApiKey);
-      const inputTokens = result.usage?.input_tokens || estimateTokens(messages.map((m: ChatMessage) => m.content).join(''));
+      // 非流式
+      const result = await callProvider(model, messages as ChatMessage[], providerApiKey, providerOpts);
+
+      const inputTokens = result.usage?.input_tokens || totalInputTokens;
       const outputTokens = result.usage?.output_tokens || estimateTokens(result.content);
       const cost = calculateCost(inputTokens, outputTokens, model.input_price, model.output_price);
-      const newBalance = Math.max(0, balance - cost);
-      await adminClient.from('ai_credits').update({ balance: newBalance }).eq('user_id', userId);
-      await adminClient.from('ai_usage_logs').insert({ user_id: userId, model_id: model.id, input_tokens: inputTokens, output_tokens: outputTokens, cost, is_free: false, api_key_id: apiKeyId, interrupted: false });
-      if (cost > 0) await adminClient.from('ai_transactions').insert({ user_id: userId, amount: -cost, type: 'consumption', note: `API 调用 ${model.id}，输入 ${inputTokens} token，输出 ${outputTokens} token` });
-      return new Response(JSON.stringify({
-        id: `chatcmpl-${crypto.randomUUID()}`, object: 'chat.completion', created: Math.floor(Date.now() / 1000), model: model.id,
-        choices: [{ index: 0, message: { role: 'assistant', content: result.content }, finish_reason: result.finish_reason || 'stop' }],
-        usage: { prompt_tokens: inputTokens, completion_tokens: outputTokens, total_tokens: inputTokens + outputTokens },
-      }), { headers: jsonHeaders });
+
+      const newBalance = cost > 0 ? await spend(cost) : balance;
+      const insufficient = newBalance < 0;
+      await recordUsage(inputTokens, outputTokens, insufficient ? 0 : cost, insufficient);
+
+      if (insufficient) {
+        return new Response(
+          JSON.stringify({
+            error: { message: '研点不足，本次调用已中止', type: 'insufficient_quota', balance: 0 },
+          }),
+          { status: 402, headers: jsonHeaders }
+        );
+      }
+
+      // OpenAI 格式响应
+      return new Response(
+        JSON.stringify({
+          id: `chatcmpl-${crypto.randomUUID()}`,
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: model.id,
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: result.content },
+              finish_reason: result.finish_reason || 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: inputTokens,
+            completion_tokens: outputTokens,
+            total_tokens: inputTokens + outputTokens,
+          },
+        }),
+        { headers: jsonHeaders }
+      );
     }
 
-    const stream = await callProviderStream(model, messages as ChatMessage[], providerApiKey);
+    // 6. 流式模式
+    const stream = await callProviderStream(model, messages as ChatMessage[], providerApiKey, providerOpts);
     const streamReader = stream.getReader();
     let accumulatedOutput = '';
     let estimatedOutputTokens = 0;
     let chunkCount = 0;
     let interrupted = false;
     let finalUsage: TokenUsage | null = null;
+    let settled = false;
+
     const encoder = new TextEncoder();
     const completionId = `chatcmpl-${crypto.randomUUID()}`;
 
+    // 结算：原子扣费 + 记账
+    const settle = async (): Promise<{ cost: number; balance: number }> => {
+      if (settled) return { cost: 0, balance };
+      settled = true;
+      const inputTokens = finalUsage?.input_tokens || totalInputTokens;
+      const outputTokens = finalUsage?.output_tokens || estimatedOutputTokens;
+      const cost = calculateCost(inputTokens, outputTokens, model.input_price, model.output_price);
+      const newBalance = cost > 0 ? await spend(cost) : balance;
+      await recordUsage(inputTokens, outputTokens, newBalance < 0 ? 0 : cost, interrupted);
+      return { cost, balance: Math.max(0, newBalance) };
+    };
+
     const sseStream = new ReadableStream({
       async start(controller) {
+        let closed = false;
         const sendSSE = (data: object) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+          if (closed) return;
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+          } catch {
+            closed = true;
+          }
         };
+
         try {
           while (true) {
             const { done, value } = await streamReader.read();
             if (done) break;
+
             const chunk = value as StreamChunk;
             chunkCount++;
+
             if (chunk.delta) {
               accumulatedOutput += chunk.delta;
+
+              // 实时监测
               if (chunkCount % 10 === 0 || accumulatedOutput.length % 500 < chunk.delta.length) {
                 estimatedOutputTokens = estimateTokens(accumulatedOutput);
-                const inputEstimate = estimateTokens(messages.map((m: ChatMessage) => m.content).join(''));
-                const currentCost = calculateCost(inputEstimate, estimatedOutputTokens, model.input_price, model.output_price);
+                const currentCost = calculateCost(
+                  totalInputTokens,
+                  estimatedOutputTokens,
+                  model.input_price,
+                  model.output_price
+                );
+
                 if (currentCost > balance) {
                   interrupted = true;
+                  const settledInfo = await settle();
                   sendSSE({
                     id: completionId,
                     object: 'chat.completion.chunk',
@@ -240,67 +401,87 @@ Deno.serve(async (req) => {
                       reason: 'insufficient_balance',
                       tokens_used: estimatedOutputTokens,
                       cost: Math.round(currentCost * 10000) / 10000,
+                      balance: settledInfo.balance,
                     },
                   });
                   break;
                 }
               }
+
+              // OpenAI 格式 chunk
               sendSSE({
                 id: completionId,
                 object: 'chat.completion.chunk',
                 created: Math.floor(Date.now() / 1000),
                 model: model.id,
-                choices: [{ index: 0, delta: { content: chunk.delta }, finish_reason: null }],
+                choices: [
+                  {
+                    index: 0,
+                    delta: { content: chunk.delta },
+                    finish_reason: null,
+                  },
+                ],
               });
             }
+
             if (chunk.usage) finalUsage = chunk.usage;
             if (chunk.finish_reason && !interrupted) break;
           }
 
-          const inputTokens = finalUsage?.input_tokens || estimateTokens(messages.map((m: ChatMessage) => m.content).join(''));
-          const outputTokens = finalUsage?.output_tokens || estimatedOutputTokens;
-          const cost = calculateCost(inputTokens, outputTokens, model.input_price, model.output_price);
-          const newBalance = Math.max(0, balance - cost);
-          await adminClient.from('ai_credits').update({ balance: newBalance }).eq('user_id', userId);
-          await adminClient.from('ai_usage_logs').insert({
-            user_id: userId,
-            model_id: model.id,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-            cost,
-            is_free: false,
-            api_key_id: apiKeyId,
-            interrupted,
-          });
-          if (cost > 0) {
-            await adminClient.from('ai_transactions').insert({
-              user_id: userId,
-              amount: -cost,
-              type: 'consumption',
-              note: `API 调用 ${model.id}，输入 ${inputTokens} token，输出 ${outputTokens} token`,
+          // 结算 + 结束 chunk
+          if (!settled) {
+            const settledInfo = await settle();
+            sendSSE({
+              id: completionId,
+              object: 'chat.completion.chunk',
+              created: Math.floor(Date.now() / 1000),
+              model: model.id,
+              choices: [{ index: 0, delta: {}, finish_reason: interrupted ? 'length' : 'stop' }],
+              usage: {
+                prompt_tokens: finalUsage?.input_tokens || totalInputTokens,
+                completion_tokens: finalUsage?.output_tokens || estimatedOutputTokens,
+                total_tokens: (finalUsage?.input_tokens || totalInputTokens) + (finalUsage?.output_tokens || estimatedOutputTokens),
+              },
+              _seoc: { type: 'done', cost: settledInfo.cost, balance: settledInfo.balance },
             });
           }
 
-          sendSSE({
-            id: completionId,
-            object: 'chat.completion.chunk',
-            created: Math.floor(Date.now() / 1000),
-            model: model.id,
-            choices: [{ index: 0, delta: {}, finish_reason: interrupted ? 'length' : 'stop' }],
-            usage: {
-              prompt_tokens: inputTokens,
-              completion_tokens: outputTokens,
-              total_tokens: inputTokens + outputTokens,
-            },
-          });
-
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          controller.close();
+          sendSSE({ type: 'eof' });
+          if (!closed) {
+            try {
+              controller.close();
+            } catch {
+              /* 已关闭 */
+            }
+          }
         } catch (err) {
+          // 上游异常或客户端取消：有部分输出则部分结算
+          if (accumulatedOutput) {
+            interrupted = true;
+            try {
+              await settle();
+            } catch {
+              /* 结算失败不阻断 */
+            }
+          }
           sendSSE({
             error: { message: String(err?.message || err), type: 'server_error' },
           });
-          controller.close();
+          if (!closed) {
+            try {
+              controller.close();
+            } catch {
+              /* 已关闭 */
+            }
+          }
+        }
+      },
+      // 客户端断开：中断上游读取
+      async cancel() {
+        try {
+          await streamReader.cancel();
+        } catch {
+          /* 忽略 */
         }
       },
     });

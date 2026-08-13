@@ -5,7 +5,7 @@ import { getProduct, minimumWords, PRODUCTS, purchaseTitle } from '../data/produ
 import { PageHeader, Spinner } from '../components/ui';
 import { fetchAllInquiries, replyInquiry, type Inquiry } from '../lib/inquiries';
 import SurveyAdmin from '../components/SurveyAdmin';
-import { getModels, getUsageSummary, listAllTopupOrders, confirmTopupOrder, listAllMembershipOrders, confirmMembershipOrder, TIER_INFO, type AIModel, type AITopupOrder, type AIMembershipOrder } from '../lib/ai';
+import { getModels, getPlatformStats, listAllTopupOrders, confirmTopupOrder, listAllMembershipOrders, confirmMembershipOrder, TIER_INFO, type AIModel, type AITopupOrder, type AIMembershipOrder } from '../lib/ai';
 
 export default function Admin() {
   const { profile, loading } = useAuth();
@@ -21,7 +21,14 @@ export default function Admin() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [aiModels, setAiModels] = useState<AIModel[]>([]);
-  const [aiSummary, setAiSummary] = useState<{ total_calls: number; total_cost: number; recent_models: string[] }>({ total_calls: 0, total_cost: 0, recent_models: [] });
+  const [aiSummary, setAiSummary] = useState<{
+    total_calls: number;
+    total_cost: number;
+    active_users: number;
+    today_calls: number;
+    pending_topup: number;
+    pending_membership: number;
+  }>({ total_calls: 0, total_cost: 0, active_users: 0, today_calls: 0, pending_topup: 0, pending_membership: 0 });
   const [topupOrders, setTopupOrders] = useState<(AITopupOrder & { email?: string })[]>([]);
   const [membershipOrders, setMembershipOrders] = useState<(AIMembershipOrder & { email?: string })[]>([]);
 
@@ -31,7 +38,10 @@ export default function Admin() {
     }
     if (tab === 'ai' && profile?.role === 'admin') {
       getModels().then(setAiModels);
-      getUsageSummary().then(setAiSummary);
+      // 全站统计（RPC）：此前误用 getUsageSummary，显示的是管理员个人数据
+      getPlatformStats().then((s) => {
+        if (s) setAiSummary(s);
+      });
       listAllTopupOrders('pending').then(setTopupOrders).catch(() => {});
       listAllMembershipOrders('pending').then(setMembershipOrders).catch(() => {});
     }
@@ -241,19 +251,23 @@ export default function Admin() {
 
         {tab === 'ai' && (
           <div className="space-y-6">
-            {/* 使用统计概览 */}
+            {/* 使用统计概览（全站） */}
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="card p-5 text-center">
-                <p className="text-3xl font-bold text-brand-700">{aiSummary.total_calls}</p>
-                <p className="mt-1 text-sm text-slate-500">总调用次数</p>
+                <p className="text-3xl font-bold text-brand-700">{aiSummary.total_calls.toLocaleString()}</p>
+                <p className="mt-1 text-sm text-slate-500">全站总调用次数</p>
+                <p className="mt-0.5 text-xs text-slate-400">今日 {aiSummary.today_calls.toLocaleString()} 次</p>
               </div>
               <div className="card p-5 text-center">
-                <p className="text-3xl font-bold text-amber-600">{aiSummary.total_cost.toFixed(2)}</p>
-                <p className="mt-1 text-sm text-slate-500">总研点消耗</p>
+                <p className="text-3xl font-bold text-amber-600">{Number(aiSummary.total_cost).toFixed(2)}</p>
+                <p className="mt-1 text-sm text-slate-500">全站总研点消耗</p>
               </div>
               <div className="card p-5 text-center">
-                <p className="text-3xl font-bold text-emerald-600">{aiModels.filter(m => m.enabled).length}</p>
-                <p className="mt-1 text-sm text-slate-500">启用中的模型</p>
+                <p className="text-3xl font-bold text-emerald-600">{aiSummary.active_users}</p>
+                <p className="mt-1 text-sm text-slate-500">使用 AI 的用户数</p>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  待确认：充值 {aiSummary.pending_topup} · 会员 {aiSummary.pending_membership}
+                </p>
               </div>
             </div>
 
@@ -411,7 +425,7 @@ export default function Admin() {
                               onClick={async () => {
                                 await confirmTopupOrder(o.id, true);
                                 setTopupOrders(await listAllTopupOrders('pending'));
-                                setAiSummary(await getUsageSummary());
+                                getPlatformStats().then((s) => s && setAiSummary(s));
                               }}
                             >
                               确认到账

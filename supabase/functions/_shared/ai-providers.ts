@@ -95,10 +95,20 @@ const PROVIDER_ENV_KEYS: Record<string, string> = {
 export async function callProvider(
   model: ModelConfig,
   messages: ChatMessage[],
-  apiKey: string
+  apiKey: string,
+  opts?: { maxTokens?: number; temperature?: number; topP?: number }
 ): Promise<ProviderResponse> {
   const url = PROVIDER_ENDPOINTS[model.provider];
   if (!url) throw new Error(`不支持的厂商: ${model.provider}`);
+
+  const body: Record<string, unknown> = {
+    model: model.id,
+    messages,
+    stream: false,
+  };
+  if (opts?.maxTokens) body.max_tokens = opts.maxTokens;
+  if (opts?.temperature !== undefined) body.temperature = opts.temperature;
+  if (opts?.topP !== undefined) body.top_p = opts.topP;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -106,11 +116,7 @@ export async function callProvider(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: model.id,
-      messages,
-      stream: false,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
@@ -135,10 +141,20 @@ export async function callProvider(
 export async function callProviderStream(
   model: ModelConfig,
   messages: ChatMessage[],
-  apiKey: string
+  apiKey: string,
+  opts?: { maxTokens?: number; temperature?: number; topP?: number }
 ): Promise<ReadableStream<StreamChunk>> {
   const url = PROVIDER_ENDPOINTS[model.provider];
   if (!url) throw new Error(`不支持的厂商: ${model.provider}`);
+
+  const body: Record<string, unknown> = {
+    model: model.id,
+    messages,
+    stream: true,
+  };
+  if (opts?.maxTokens) body.max_tokens = opts.maxTokens;
+  if (opts?.temperature !== undefined) body.temperature = opts.temperature;
+  if (opts?.topP !== undefined) body.top_p = opts.topP;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -146,11 +162,7 @@ export async function callProviderStream(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: model.id,
-      messages,
-      stream: true,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {

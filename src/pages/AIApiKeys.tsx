@@ -1,24 +1,33 @@
 import { useState, useEffect } from 'react';
 import { useI18n } from '../lib/i18n';
+import { useAuth } from '../lib/auth';
 import { Reveal, BackButton } from '../components/fx';
 import {
   listApiKeys,
   createApiKey,
   revokeApiKey,
   getModels,
+  isMembershipActive,
   TIER_INFO,
   type AIApiKey,
   type AIModel,
+  type MembershipTier,
 } from '../lib/ai';
 
 export default function AIApiKeys() {
   const { t, lang } = useI18n();
+  const { profile } = useAuth();
   const [keys, setKeys] = useState<AIApiKey[]>([]);
   const [models, setModels] = useState<AIModel[]>([]);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
+
+  // 会员门槛：API 调用同样受会员等级限制
+  const userTier: MembershipTier = (profile?.membership_tier as MembershipTier) || 'free';
+  const membershipActive = isMembershipActive(userTier, profile?.membership_expires_at);
+  const canUseAPI = membershipActive && userTier !== 'free';
 
   useEffect(() => {
     loadData();
@@ -76,6 +85,14 @@ export default function AIApiKeys() {
       <Reveal>
         <div className="card mb-6 p-6">
           <h3 className="mb-4 text-lg font-semibold text-slate-800">{t('ai.api.createKey')}</h3>
+          {!canUseAPI && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              API 调用需要 Lite 及以上会员（与研智助手聊天同一门槛）。当前等级：
+              <span className="mx-1 font-semibold">{userTier === 'free' ? '免费用户' : TIER_INFO[userTier].name}</span>
+              {userTier !== 'free' && !membershipActive && '（已过期）'}。
+              可先创建密钥，开通会员后即可调用。
+            </div>
+          )}
           <div className="flex gap-3">
             <input
               type="text"

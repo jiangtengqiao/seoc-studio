@@ -64,6 +64,7 @@ export interface StreamCallbacks {
   onInterrupt?: (reason: string, tokensUsed: number, cost: number) => void;
   onDone?: (usage: { input_tokens: number; output_tokens: number }, cost: number, isFree: boolean, balance: number, freeRemaining: number) => void;
   onError?: (error: string) => void;
+  onAbort?: () => void;
 }
 
 // ============================================================
@@ -159,7 +160,8 @@ export async function getBalance(): Promise<AIBalance> {
 export async function sendMessage(
   modelId: string,
   messages: ChatMessage[],
-  callbacks: StreamCallbacks
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
 ): Promise<void> {
   if (!isCloudEnabled || !supabase) {
     // 本地 mock 模式
@@ -171,17 +173,10 @@ export async function sendMessage(
   const token = session.session?.access_token;
   if (!token) throw new Error('未登录');
 
-  const { data: funcData, error: funcError } = await supabase.functions.invoke('ai-chat', {
-    body: { model: modelId, messages },
-  });
-
-  if (funcError) {
-    callbacks.onError?.(funcError.message);
-    return;
-  }
-
   // 处理 SSE 流
-  // 注意：supabase.functions.invoke 不支持 SSE，需要直接用 fetch
+  // 注意：supabase.functions.invoke 不支持 SSE，直接用 fetch。
+  // 修复：原先这里先用 invoke 调用了一次（完整执行并计费），再 fetch 一次，
+  // 导致每条消息被计费两次、厂商 API 成本翻倍。现只保留一次 fetch 流式调用。
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const response = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
     method: 'POST',
@@ -190,11 +185,22 @@ export async function sendMessage(
       'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({ model: modelId, messages }),
+    signal,
   });
 
   if (!response.ok) {
-    const err = await response.json();
-    callbacks.onError?.(err.error || '请求失败');
+    let message = '请求失败';
+    try {
+      const err = await response.json();
+      message = err.error || message;
+    } catch {
+      /* 非 JSON 响应 */
+    }
+    if (signal?.aborted) {
+      callbacks.onAbort?.();
+    } else {
+      callbacks.onError?.(message);
+    }
     return;
   }
 
@@ -247,6 +253,11 @@ export async function sendMessage(
     }
   } finally {
     reader.releaseLock();
+  }
+
+  // 用户主动停止：fetch 会抛 AbortError，不当作错误展示
+  if (signal?.aborted) {
+    callbacks.onAbort?.();
   }
 }
 
@@ -448,21 +459,20 @@ export interface AITopupOrder {
   points: number;
   status: 'pending' | 'confirmed' | 'rejected';
   note: string | null;
+  admin_note?: string | null;
   created_at: string;
   confirmed_at: string | null;
   expires_at?: string | null;
 }
 
 /**
- * 创建充值订单。云端模式写入 pending 订单，等待管理员核验到账后确认自动加余额；
- * 本地演示模式直接加余额并记交易，便于离线体验。
+ * 创建充值订单（服务端价格表 RPC，防客户端伪造金额）。
+ * planKey：'t10' | 't50' | 't100'（10/50/100 元档）
  */
-export async function createTopupOrder(
-  yuan: number,
-  points: number,
-  note?: string
-): Promise<{ order: AITopupOrder | null; ok: boolean }> {
+export async function createTopupOrder(planKey: string): Promise<{ order: AITopupOrder | null; ok: boolean }> {
   if (!isCloudEnabled || !supabase) {
+    const planMap: Record<string, number> = { t10: 10000, t50: 60000, t100: 150000 };
+    const points = planMap[planKey] || 10000;
     const balanceKey = 'seoc.local.ai_balance';
     const stored = localStorage.getItem(balanceKey);
     const credits: AIBalance = stored ? JSON.parse(stored) : { balance: 10000, free_remaining: 5, free_daily_quota: 5 };
@@ -474,7 +484,7 @@ export async function createTopupOrder(
       id: `local-tx-${Date.now()}`,
       amount: points,
       type: 'purchase',
-      note: `充值 ${yuan} 元（演示直接到账）`,
+      note: `充值（演示直接到账）`,
       created_at: new Date().toISOString(),
     });
     localStorage.setItem('seoc.local.ai_transactions', JSON.stringify(txs));
@@ -482,15 +492,7 @@ export async function createTopupOrder(
     return { order: null, ok: true };
   }
 
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error('未登录');
-
-  const { data, error } = await supabase
-    .from('ai_topup_orders')
-    .insert({ user_id: userData.user.id, yuan, points, note: note || null })
-    .select()
-    .single();
-
+  const { data, error } = await supabase.rpc('create_ai_topup_order', { p_plan: planKey });
   if (error) throw error;
   return { order: data as AITopupOrder, ok: true };
 }
@@ -538,6 +540,7 @@ export async function listAllTopupOrders(
     points: Number(r.points),
     status: r.status as AITopupOrder['status'],
     note: (r.note as string | null) || null,
+    admin_note: (r.admin_note as string | null) || null,
     created_at: r.created_at as string,
     confirmed_at: (r.confirmed_at as string | null) || null,
     expires_at: (r.expires_at as string | null) || null,
@@ -671,39 +674,27 @@ export interface AIMembershipOrder {
   granted_points: number;
   status: 'pending' | 'confirmed' | 'rejected';
   note: string | null;
+  admin_note?: string | null;
   created_at: string;
   confirmed_at: string | null;
   expires_at?: string | null;
 }
 
 /**
- * 创建会员订单
+ * 创建会员订单（服务端价格表 RPC，防客户端伪造金额）
  */
 export async function createMembershipOrder(
   tier: Exclude<MembershipTier, 'free'>,
   period: 'monthly' | 'yearly'
 ): Promise<{ order: AIMembershipOrder | null; ok: boolean }> {
-  const info = TIER_INFO[tier];
-  const yuan = period === 'monthly' ? info.priceMonthly : info.priceYearly;
-
   if (!isCloudEnabled || !supabase) {
     return { order: null, ok: true };
   }
 
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error('未登录');
-
-  const { data, error } = await supabase
-    .from('ai_membership_orders')
-    .insert({
-      user_id: userData.user.id,
-      tier,
-      period,
-      yuan,
-      granted_points: info.grantedPoints,
-    })
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc('create_ai_membership_order', {
+    p_tier: tier,
+    p_period: period,
+  });
 
   if (error) throw error;
   return { order: data as AIMembershipOrder, ok: true };
@@ -754,6 +745,7 @@ export async function listAllMembershipOrders(
     granted_points: Number(r.granted_points),
     status: r.status as AIMembershipOrder['status'],
     note: (r.note as string | null) || null,
+    admin_note: (r.admin_note as string | null) || null,
     created_at: r.created_at as string,
     confirmed_at: (r.confirmed_at as string | null) || null,
     expires_at: (r.expires_at as string | null) || null,
@@ -774,25 +766,17 @@ export async function confirmMembershipOrder(id: string, ok: boolean): Promise<v
 }
 
 /**
- * 用户主动取消订单（仅 pending 状态可取消）
+ * 用户主动取消订单（仅 pending 状态可取消，服务端 RPC 校验归属）
  */
 export async function cancelTopupOrder(id: string): Promise<void> {
   if (!isCloudEnabled || !supabase) return;
-  const { error } = await supabase
-    .from('ai_topup_orders')
-    .update({ status: 'rejected', admin_note: '用户主动取消' })
-    .eq('id', id)
-    .eq('status', 'pending');
+  const { error } = await supabase.rpc('cancel_ai_topup_order', { p_order: id });
   if (error) throw error;
 }
 
 export async function cancelMembershipOrder(id: string): Promise<void> {
   if (!isCloudEnabled || !supabase) return;
-  const { error } = await supabase
-    .from('ai_membership_orders')
-    .update({ status: 'rejected', admin_note: '用户主动取消' })
-    .eq('id', id)
-    .eq('status', 'pending');
+  const { error } = await supabase.rpc('cancel_ai_membership_order', { p_order: id });
   if (error) throw error;
 }
 
@@ -802,4 +786,173 @@ export async function cancelMembershipOrder(id: string): Promise<void> {
 export async function cancelExpiredOrders(): Promise<void> {
   if (!isCloudEnabled || !supabase) return;
   await supabase.rpc('cancel_expired_orders');
+}
+
+// ============================================================
+// 聊天历史会话（ai_conversations / ai_messages）
+// ============================================================
+
+export interface AIConversation {
+  id: string;
+  model_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AIConversationMessage {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  cost: number;
+  is_free: boolean;
+  interrupted: boolean;
+  created_at: string;
+}
+
+/**
+ * 查询本人的会话列表（最近更新优先）
+ */
+export async function listConversations(limit = 30): Promise<AIConversation[]> {
+  if (!isCloudEnabled || !supabase) {
+    const stored = localStorage.getItem('seoc.local.ai_conversations');
+    return stored ? JSON.parse(stored) : [];
+  }
+
+  const { data, error } = await supabase
+    .from('ai_conversations')
+    .select('id, model_id, title, created_at, updated_at')
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data as AIConversation[];
+}
+
+/**
+ * 查询会话消息
+ */
+export async function listConversationMessages(conversationId: string): Promise<AIConversationMessage[]> {
+  if (!isCloudEnabled || !supabase) {
+    const stored = localStorage.getItem(`seoc.local.ai_messages_${conversationId}`);
+    return stored ? JSON.parse(stored) : [];
+  }
+
+  const { data, error } = await supabase
+    .from('ai_messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data as AIConversationMessage[];
+}
+
+/**
+ * 新建或更新会话（服务端 RPC 校验归属）。返回会话 ID。
+ */
+export async function saveConversation(
+  conversationId: string | null,
+  modelId: string,
+  title: string
+): Promise<string> {
+  if (!isCloudEnabled || !supabase) {
+    const list = JSON.parse(localStorage.getItem('seoc.local.ai_conversations') || '[]') as AIConversation[];
+    const now = new Date().toISOString();
+    if (conversationId) {
+      const idx = list.findIndex((c) => c.id === conversationId);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], model_id: modelId, updated_at: now, title: list[idx].title === '新对话' ? title : list[idx].title };
+        localStorage.setItem('seoc.local.ai_conversations', JSON.stringify(list));
+        return conversationId;
+      }
+    }
+    const id = `local-conv-${Date.now()}`;
+    list.unshift({ id, model_id: modelId, title: title || '新对话', created_at: now, updated_at: now });
+    localStorage.setItem('seoc.local.ai_conversations', JSON.stringify(list));
+    return id;
+  }
+
+  const { data, error } = await supabase.rpc('save_ai_conversation', {
+    p_conversation: conversationId,
+    p_model: modelId,
+    p_title: title,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+/**
+ * 保存一条消息（服务端 RPC 校验归属）
+ */
+export async function saveConversationMessage(
+  conversationId: string,
+  role: 'user' | 'assistant',
+  content: string,
+  cost = 0,
+  isFree = false,
+  interrupted = false
+): Promise<void> {
+  if (!isCloudEnabled || !supabase) {
+    const key = `seoc.local.ai_messages_${conversationId}`;
+    const list = JSON.parse(localStorage.getItem(key) || '[]') as AIConversationMessage[];
+    list.push({
+      id: `local-msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      conversation_id: conversationId,
+      role,
+      content,
+      cost,
+      is_free: isFree,
+      interrupted,
+      created_at: new Date().toISOString(),
+    });
+    localStorage.setItem(key, JSON.stringify(list));
+    return;
+  }
+
+  const { error } = await supabase.rpc('save_ai_message', {
+    p_conversation: conversationId,
+    p_role: role,
+    p_content: content,
+    p_cost: cost,
+    p_is_free: isFree,
+    p_interrupted: interrupted,
+  });
+  if (error) throw error;
+}
+
+// ============================================================
+// 全站统计（仅管理员可用的 RPC）
+// ============================================================
+
+export async function getPlatformStats(): Promise<{
+  total_calls: number;
+  total_cost: number;
+  active_users: number;
+  today_calls: number;
+  pending_topup: number;
+  pending_membership: number;
+} | null> {
+  if (!isCloudEnabled || !supabase) {
+    return {
+      total_calls: 0,
+      total_cost: 0,
+      active_users: 0,
+      today_calls: 0,
+      pending_topup: 0,
+      pending_membership: 0,
+    };
+  }
+
+  const { data, error } = await supabase.rpc('get_ai_platform_stats');
+  if (error) return null;
+  return data as {
+    total_calls: number;
+    total_cost: number;
+    active_users: number;
+    today_calls: number;
+    pending_topup: number;
+    pending_membership: number;
+  };
 }

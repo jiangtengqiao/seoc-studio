@@ -158,6 +158,14 @@ const zhCN: Dict = {
 
   'ai.chat.noBalance': '研点不足，无法发送',
 
+  'ai.chat.stop': '停止生成',
+
+  'ai.chat.stopped': '已停止生成',
+
+  'ai.chat.newChat': '新对话',
+
+  'ai.chat.history': '历史会话',
+
   'ai.chat.footerNote': '按 Enter 发送，Shift+Enter 换行。',
 
   'ai.chat.suggest1': 'Python 装饰器怎么用？',
@@ -420,6 +428,14 @@ const zhTW: Dict = {
   'ai.chat.interrupted': '餘額不足，回覆已中斷',
 
   'ai.chat.noBalance': '研點不足，無法發送',
+
+  'ai.chat.stop': '停止生成',
+
+  'ai.chat.stopped': '已停止生成',
+
+  'ai.chat.newChat': '新對話',
+
+  'ai.chat.history': '歷史會話',
 
   'ai.chat.footerNote': '按 Enter 發送，Shift+Enter 換行。',
 
@@ -684,6 +700,14 @@ const en: Dict = {
 
   'ai.chat.noBalance': 'Insufficient Research Points to send',
 
+  'ai.chat.stop': 'Stop',
+
+  'ai.chat.stopped': 'Generation stopped',
+
+  'ai.chat.newChat': 'New chat',
+
+  'ai.chat.history': 'History',
+
   'ai.chat.footerNote': 'Press Enter to send, Shift+Enter for new line.',
 
   'ai.chat.suggest1': 'How to use Python decorators?',
@@ -946,6 +970,14 @@ const ja: Dict = {
   'ai.chat.interrupted': '残高不足のため返信が中断されました',
 
   'ai.chat.noBalance': 'ポイント不足のため送信できません',
+
+  'ai.chat.stop': '生成停止',
+
+  'ai.chat.stopped': '生成を停止しました',
+
+  'ai.chat.newChat': '新しい会話',
+
+  'ai.chat.history': '履歴',
 
   'ai.chat.footerNote': 'Enter で送信、Shift+Enter で改行。',
 
@@ -1210,6 +1242,14 @@ const ko: Dict = {
 
   'ai.chat.noBalance': '포인트가 부족하여 전송할 수 없습니다',
 
+  'ai.chat.stop': '생성 중지',
+
+  'ai.chat.stopped': '생성이 중지되었습니다',
+
+  'ai.chat.newChat': '새 대화',
+
+  'ai.chat.history': '기록',
+
   'ai.chat.footerNote': 'Enter로 보내기, Shift+Enter로 줄바꿈.',
 
   'ai.chat.suggest1': 'Python 데코레이터는 어떻게 사용하나요?',
@@ -1472,6 +1512,14 @@ const fr: Dict = {
   'ai.chat.interrupted': 'Solde insuffisant, réponse interrompue',
 
   'ai.chat.noBalance': 'Points insuffisants pour envoyer',
+
+  'ai.chat.stop': 'Arrêter',
+
+  'ai.chat.stopped': 'Génération arrêtée',
+
+  'ai.chat.newChat': 'Nouvelle conversation',
+
+  'ai.chat.history': 'Historique',
 
   'ai.chat.footerNote': 'Appuyez sur Entrée pour envoyer, Shift+Entrée pour une nouvelle ligne.',
 
@@ -1736,6 +1784,14 @@ const de: Dict = {
 
   'ai.chat.noBalance': 'Unzureichende Punkte zum Senden',
 
+  'ai.chat.stop': 'Stoppen',
+
+  'ai.chat.stopped': 'Generierung gestoppt',
+
+  'ai.chat.newChat': 'Neuer Chat',
+
+  'ai.chat.history': 'Verlauf',
+
   'ai.chat.footerNote': 'Enter zum Senden, Shift+Enter für neue Zeile.',
 
   'ai.chat.suggest1': 'Wie verwende ich Python-Dekoratoren?',
@@ -1999,6 +2055,14 @@ const es: Dict = {
 
   'ai.chat.noBalance': 'Puntos insuficientes para enviar',
 
+  'ai.chat.stop': 'Detener',
+
+  'ai.chat.stopped': 'Generación detenida',
+
+  'ai.chat.newChat': 'Nueva conversación',
+
+  'ai.chat.history': 'Historial',
+
   'ai.chat.footerNote': 'Pulsa Enter para enviar, Shift+Enter para nueva línea.',
 
   'ai.chat.suggest1': '¿Cómo usar decoradores en Python?',
@@ -2261,6 +2325,14 @@ const ru: Dict = {
   'ai.chat.interrupted': 'Недостаточно баллов, ответ прерван',
 
   'ai.chat.noBalance': 'Недостаточно баллов для отправки',
+
+  'ai.chat.stop': 'Остановить',
+
+  'ai.chat.stopped': 'Генерация остановлена',
+
+  'ai.chat.newChat': 'Новый чат',
+
+  'ai.chat.history': 'История',
 
   'ai.chat.footerNote': 'Enter для отправки, Shift+Enter для новой строки.',
 

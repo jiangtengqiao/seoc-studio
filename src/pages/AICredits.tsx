@@ -36,9 +36,9 @@ const PAYMENT_METHODS = {
 type PaymentMethod = keyof typeof PAYMENT_METHODS;
 
 const TOPUP_PLANS = [
-  { yuan: 10, points: 10000, label: '10 元' },
-  { yuan: 50, points: 60000, label: '50 元', bonus: '多送 20%' },
-  { yuan: 100, points: 150000, label: '100 元', bonus: '多送 50%' },
+  { key: 't10', yuan: 10, points: 10000, label: '10 元' },
+  { key: 't50', yuan: 50, points: 60000, label: '50 元', bonus: '多送 20%' },
+  { key: 't100', yuan: 100, points: 150000, label: '100 元', bonus: '多送 50%' },
 ];
 
 const TIER_LIST: Exclude<MembershipTier, 'free'>[] = ['lite', 'plus', 'pro', 'max'];
@@ -98,7 +98,7 @@ export default function AICredits() {
   const handleTopup = async (plan: typeof TOPUP_PLANS[0]) => {
     setTopupResult(null);
     try {
-      const { order } = await createTopupOrder(plan.yuan, plan.points);
+      const { order } = await createTopupOrder(plan.key);
       if (order) {
         setTopupResult(`订单已提交（${plan.label}，${plan.points.toLocaleString()} 研点）。请扫描下方收款码完成支付，管理员核验到账后研点自动入账。`);
       } else {

@@ -11,12 +11,17 @@ import {
   getBalance,
   canUseModel,
   isMembershipActive,
+  listConversations,
+  listConversationMessages,
+  saveConversation,
+  saveConversationMessage,
   TIER_ORDER,
   TIER_INFO,
   type AIModel,
   type AIBalance,
   type ChatMessage,
   type MembershipTier,
+  type AIConversation,
 } from '../lib/ai';
 
 interface Message {
@@ -48,6 +53,13 @@ export default function AIChat() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // 会话历史
+  const [conversations, setConversations] = useState<AIConversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   // 会员等级信息
   const userTier: MembershipTier = (profile?.membership_tier as MembershipTier) || 'free';
@@ -78,6 +90,27 @@ export default function AIChat() {
       setModels(m);
       setBalance(b);
       if (m.length > 0) setSelectedModel(m[0].id);
+      // 加载会话列表，默认打开最近一次会话
+      try {
+        const convs = await listConversations();
+        setConversations(convs);
+        if (convs.length > 0) {
+          setCurrentConversationId(convs[0].id);
+          const msgs = await listConversationMessages(convs[0].id);
+          setMessages(
+            msgs.map((mm) => ({
+              role: mm.role,
+              content: mm.content,
+              interrupted: mm.interrupted,
+              cost: mm.cost,
+              isFree: mm.is_free,
+            }))
+          );
+        }
+      } catch {
+        /* 会话加载失败不影响聊天 */
+      }
+      setHistoryLoaded(true);
     })();
   }, []);
 
@@ -124,6 +157,47 @@ export default function AIChat() {
     anthropic: { name: 'Anthropic', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
   };
 
+  const newChat = () => {
+    if (streaming) return;
+    setMessages([]);
+    setCurrentConversationId(null);
+    setSidebarOpen(false);
+    setInterruptNotice(null);
+    inputRef.current?.focus();
+  };
+
+  const switchConversation = async (id: string) => {
+    if (streaming || id === currentConversationId) {
+      if (id !== currentConversationId) setSidebarOpen(false);
+      return;
+    }
+    try {
+      const msgs = await listConversationMessages(id);
+      setMessages(
+        msgs.map((mm) => ({
+          role: mm.role,
+          content: mm.content,
+          interrupted: mm.interrupted,
+          cost: mm.cost,
+          isFree: mm.is_free,
+        }))
+      );
+      const conv = conversations.find((c) => c.id === id);
+      if (conv?.model_id && models.some((m) => m.id === conv.model_id)) {
+        setSelectedModel(conv.model_id);
+      }
+      setCurrentConversationId(id);
+      setInterruptNotice(null);
+    } catch {
+      /* 忽略 */
+    }
+    setSidebarOpen(false);
+  };
+
+  const stopGeneration = () => {
+    abortRef.current?.abort();
+  };
+
   const handleSend = async () => {
     const text = input.trim();
     if (!text || streaming || !selectedModel) return;
@@ -160,6 +234,20 @@ export default function AIChat() {
 
     setMessages((prev) => [...prev, userMsg, assistantMsg]);
 
+    // 确保会话存在（首条消息建会话，标题取首条内容前 30 字）
+    let convId = currentConversationId;
+    try {
+      convId = await saveConversation(currentConversationId, selectedModel, text.slice(0, 30));
+      setCurrentConversationId(convId);
+      const convs = await listConversations();
+      setConversations(convs);
+    } catch {
+      /* 会话保存失败不阻断聊天 */
+    }
+    if (convId) {
+      saveConversationMessage(convId, 'user', text).catch(() => {});
+    }
+
     // 构建历史消息（最近 20 条）
     const history: ChatMessage[] = [
       { role: 'system', content: `你是 SEOC Studio 研智助手，一个专业的编程学习助手。请用清晰、准确的语言回答用户的编程相关问题。` },
@@ -168,6 +256,8 @@ export default function AIChat() {
     ];
 
     let accumulated = '';
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       await sendMessage(selectedModel, history, {
@@ -199,6 +289,9 @@ export default function AIChat() {
             balance: 0,
             freeRemaining: 0,
           });
+          if (convId) {
+            saveConversationMessage(convId, 'assistant', accumulated, cost, false, true).catch(() => {});
+          }
         },
         onDone: (usage, cost, isFree, newBalance, freeRemaining) => {
           setMessages((prev) => {
@@ -211,6 +304,9 @@ export default function AIChat() {
             return updated;
           });
           setBalance({ balance: newBalance, free_remaining: freeRemaining });
+          if (convId) {
+            saveConversationMessage(convId, 'assistant', accumulated, cost, isFree, false).catch(() => {});
+          }
         },
         onError: (error) => {
           setMessages((prev) => {
@@ -218,17 +314,50 @@ export default function AIChat() {
             updated[updated.length - 1] = {
               ...updated[updated.length - 1],
               content: accumulated || `**错误**: ${error}`,
+              interrupted: true,
             };
             return updated;
           });
+          if (convId) {
+            saveConversationMessage(convId, 'assistant', accumulated || `**错误**: ${error}`, 0, false, true).catch(() => {});
+          }
         },
-      });
+        onAbort: () => {
+          // 用户主动停止：保留已生成内容并标记中断
+          setMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              content: accumulated,
+              interrupted: true,
+            };
+            return updated;
+          });
+          setInterruptNotice({
+            reason: t('ai.chat.stopped'),
+            tokensUsed: 0,
+            cost: 0,
+            balance: balance.balance,
+            freeRemaining: balance.free_remaining,
+          });
+          if (convId) {
+            saveConversationMessage(convId, 'assistant', accumulated, 0, false, true).catch(() => {});
+          }
+        },
+      }, controller.signal);
     } finally {
       setStreaming(false);
       setEstimatedCost(0);
-      // 刷新余额
+      abortRef.current = null;
+      // 刷新余额与历史
       const b = await getBalance();
       setBalance(b);
+      try {
+        const convs = await listConversations();
+        setConversations(convs);
+      } catch {
+        /* 忽略 */
+      }
     }
   };
 
@@ -312,12 +441,75 @@ export default function AIChat() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+      {/* 会话侧边栏（桌面常驻，移动端开关） */}
+      <aside
+        className={`${
+          sidebarOpen ? 'absolute inset-y-0 left-0 z-40 flex w-72' : 'hidden'
+        } shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 lg:relative lg:z-auto lg:flex lg:w-64`}
+      >
+        <div className="border-b border-slate-100 p-3 dark:border-slate-700">
+          <button
+            onClick={newChat}
+            disabled={streaming}
+            className="btn-primary w-full justify-center py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            + {t('ai.chat.newChat')}
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto ai-chat-scroll p-2">
+          <p className="px-2 pb-2 pt-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+            {t('ai.chat.history')}
+          </p>
+          {!historyLoaded ? (
+            <p className="px-2 text-xs text-slate-400">加载中…</p>
+          ) : conversations.length === 0 ? (
+            <p className="px-2 text-xs text-slate-400">暂无历史会话</p>
+          ) : (
+            conversations.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => switchConversation(c.id)}
+                disabled={streaming}
+                className={`mb-1 block w-full truncate rounded-lg px-3 py-2 text-left text-sm transition disabled:opacity-60 ${
+                  c.id === currentConversationId
+                    ? 'bg-brand-50 font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
+                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700/60'
+                }`}
+                title={c.title}
+              >
+                {c.title}
+                <span className="mt-0.5 block text-[10px] font-normal text-slate-400">
+                  {new Date(c.updated_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+        {sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="absolute right-2 top-2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 lg:hidden"
+            aria-label="关闭"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        )}
+      </aside>
+
+      <div className="flex h-full min-w-0 flex-1 flex-col">
       {/* 顶部栏 */}
       <div className="border-b border-slate-200 bg-white">
         <div className="container-x flex items-center justify-between py-3">
           <div className="flex items-center gap-3">
             <BackButton to="/" />
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 lg:hidden"
+              aria-label={t('ai.chat.history')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+            </button>
             <span className="mark-r text-2xl font-bold">R</span>
             <div>
               <h1 className="text-lg font-bold text-brand-950">{t('ai.chat.title')}</h1>
@@ -550,26 +742,34 @@ export default function AIChat() {
               onKeyDown={handleKeyDown}
               placeholder={t('ai.chat.placeholder')}
               rows={1}
+              maxLength={20000}
               className="input min-h-[44px] max-h-[120px] resize-none"
               disabled={streaming}
             />
-            <button
-              onClick={handleSend}
-              disabled={streaming || !input.trim()}
-              className="btn-primary shrink-0 self-end"
-            >
-              {streaming ? (
-                <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            {streaming ? (
+              <button
+                onClick={stopGeneration}
+                className="btn-outline shrink-0 self-end border-red-200 text-red-600 hover:bg-red-50"
+                title={t('ai.chat.stop')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
                 </svg>
-              ) : (
+                <span className="hidden sm:inline">{t('ai.chat.stop')}</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleSend}
+                disabled={streaming || !input.trim()}
+                className="btn-primary shrink-0 self-end"
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="22" y1="2" x2="11" y2="13" />
                   <polygon points="22 2 15 22 11 13 2 9 22 2" />
                 </svg>
-              )}
-              <span className="hidden sm:inline">{t('ai.chat.send')}</span>
-            </button>
+                <span className="hidden sm:inline">{t('ai.chat.send')}</span>
+              </button>
+            )}
           </div>
           <p className="mt-2 text-center text-xs text-slate-400">
             {t('ai.chat.footerNote')}
@@ -584,6 +784,7 @@ export default function AIChat() {
             )}
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
