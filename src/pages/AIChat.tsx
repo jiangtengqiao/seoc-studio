@@ -696,7 +696,7 @@ export default function AIChat() {
         onScroll={handleScroll}
         className="ai-chat-scroll flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900"
       >
-        <div className="container-x py-6">
+        <div className="mx-auto w-full max-w-3xl px-4 py-6">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <span className="mark-r mb-4 text-6xl font-bold opacity-30">R</span>
@@ -780,7 +780,7 @@ export default function AIChat() {
 
       {/* 输入区 */}
       <div className="border-t border-slate-200 bg-white">
-        <div className="container-x py-4">
+        <div className="mx-auto w-full max-w-3xl px-4 py-4">
           <div className="flex gap-3">
             <textarea
               ref={inputRef}

@@ -1067,13 +1067,17 @@ export async function markNotificationRead(id: string): Promise<void> {
     localStorage.setItem('seoc.local.notifications', JSON.stringify(list));
     return;
   }
-  // 直连更新（self update 策略，只允许把自己的通知标记为已读）
+  // 直连更新（self update 策略，只允许把自己的通知标记为已读）；
+  // 若旧库未执行 fix-v10 无策略，回退到 v8 的 RPC
   const { error } = await supabase
     .from('notifications')
     .update({ read: true })
     .eq('id', id)
     .eq('read', false);
-  if (error) throw error;
+  if (error) {
+    const rpcRes = await supabase.rpc('mark_notification_read', { p_id: id });
+    if (rpcRes.error) throw rpcRes.error;
+  }
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
@@ -1086,7 +1090,10 @@ export async function markAllNotificationsRead(): Promise<void> {
     .from('notifications')
     .update({ read: true })
     .eq('read', false);
-  if (error) throw error;
+  if (error) {
+    const rpcRes = await supabase.rpc('mark_all_notifications_read');
+    if (rpcRes.error) throw rpcRes.error;
+  }
 }
 
 export async function deleteNotification(id: string): Promise<void> {

@@ -55,8 +55,8 @@ export default function AICredits() {
   const [topupOrders, setTopupOrders] = useState<AITopupOrder[]>([]);
   const [membershipOrders, setMembershipOrders] = useState<AIMembershipOrder[]>([]);
   const [activeTab, setActiveTab] = useState<'transactions' | 'usage'>('transactions');
-  const [showTopup, setShowTopup] = useState(false);
-  const [showMembership, setShowMembership] = useState(false);
+  // 板块化：概览 / 充值 / 会员 / 流水，互不堆叠，减少长页滑动
+  const [section, setSection] = useState<'overview' | 'topup' | 'membership' | 'history'>('overview');
   const [topupResult, setTopupResult] = useState<string | null>(null);
   const [membershipResult, setMembershipResult] = useState<string | null>(null);
   const [payMethod, setPayMethod] = useState<PaymentMethod>('alipay');
@@ -198,7 +198,26 @@ export default function AICredits() {
         </div>
       </Reveal>
 
-      {/* 会员 + 余额状态卡片 */}
+      {/* 板块导航：四个分区互不堆叠，避免整页滑动 */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {([
+          ['overview', '概览'],
+          ['topup', `充值研点${pendingTopup > 0 ? `（${pendingTopup}）` : ''}`],
+          ['membership', `开通会员${pendingMembership > 0 ? `（${pendingMembership}）` : ''}`],
+          ['history', '流水与用量'],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setSection(key)}
+            className={section === key ? 'btn-primary !py-1.5 !text-xs' : 'btn-outline !py-1.5 !text-xs'}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* 会员 + 余额状态卡片（概览） */}
+      {section === 'overview' && (
       <Reveal>
         <div className="card mb-8 overflow-hidden">
           <div className="panel-strip" />
@@ -246,11 +265,14 @@ export default function AICredits() {
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
-            <button onClick={() => { setShowMembership(!showMembership); setShowTopup(false); }} className="btn-primary">
+            <button onClick={() => setSection('membership')} className="btn-primary">
               开通 / 续费会员
             </button>
-            <button onClick={() => { setShowTopup(!showTopup); setShowMembership(false); }} className="btn-outline">
+            <button onClick={() => setSection('topup')} className="btn-outline">
               {t('ai.credits.topup')}
+            </button>
+            <button onClick={() => setSection('history')} className="btn-outline">
+              {t('ai.credits.history')}
             </button>
             <Link to="/ai" className="btn-ghost">
               {t('ai.chat.title')}
@@ -261,9 +283,10 @@ export default function AICredits() {
           </div>
         </div>
       </Reveal>
+      )}
 
       {/* 会员购买面板 */}
-      {showMembership && (
+      {section === 'membership' && (
         <Reveal>
           <div className="card mb-8 p-6">
             <h3 className="mb-1 text-lg font-semibold text-slate-800">开通会员（使用 AI 的门槛）</h3>
@@ -414,7 +437,7 @@ export default function AICredits() {
       )}
 
       {/* 充值面板 */}
-      {showTopup && (
+      {section === 'topup' && (
         <Reveal>
           <div className="card mb-8 p-6">
             <h3 className="mb-4 text-lg font-semibold text-slate-800">{t('ai.credits.selectPlan')}</h3>
@@ -573,6 +596,9 @@ export default function AICredits() {
         </Reveal>
       )}
 
+      {/* 流水与用量 */}
+      {section === 'history' && (
+      <>
       {/* 标签切换 */}
       <div className="mb-4 flex gap-1 border-b border-slate-200">
         <button
@@ -694,6 +720,8 @@ export default function AICredits() {
             )}
           </div>
         </Reveal>
+      )}
+      </>
       )}
     </div>
   );
