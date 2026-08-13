@@ -552,6 +552,43 @@ body {
   animation: ai-cursor-blink 0.8s infinite;
 }
 
+/* 聊天内 Markdown 排版：比正文更紧凑，光标伪元素直接跟在最后一个块之后 */
+.ai-chat-md { @apply text-[13.5px] leading-[1.75] text-slate-700; }
+.ai-chat-md h1 { @apply mb-2 mt-4 text-base font-bold leading-snug text-brand-950; }
+.ai-chat-md h2 { @apply mb-2 mt-4 text-[15px] font-bold leading-snug text-brand-950; }
+.ai-chat-md h3 { @apply mb-1.5 mt-3 text-sm font-semibold text-slate-800; }
+.ai-chat-md h4 { @apply mb-1 mt-3 text-[13px] font-semibold text-slate-800; }
+.ai-chat-md p { @apply my-1.5; }
+.ai-chat-md p:first-child { @apply mt-0; }
+.ai-chat-md p:last-child { @apply mb-0; }
+.ai-chat-md ul { @apply my-2 list-disc space-y-1 pl-5; }
+.ai-chat-md ol { @apply my-2 list-decimal space-y-1 pl-5; }
+.ai-chat-md li { @apply leading-6; }
+.ai-chat-md pre { @apply my-2 overflow-x-auto rounded-lg bg-brand-950 p-3 text-xs leading-5 text-slate-100; }
+.ai-chat-md code { @apply rounded bg-brand-50 px-1 py-0.5 font-mono text-[12px] text-brand-700; }
+.ai-chat-md pre code { @apply bg-transparent p-0 text-inherit; }
+.ai-chat-md blockquote { @apply my-2 rounded-r-lg border-l-4 border-amber-400 bg-amber-50 px-3 py-1.5 text-slate-600; }
+.ai-chat-md table { @apply my-2 w-full border-collapse text-[12.5px]; }
+.ai-chat-md th { @apply border border-slate-300 bg-brand-50 px-2.5 py-1.5 text-left font-semibold; }
+.ai-chat-md td { @apply border border-slate-300 px-2.5 py-1.5; }
+.ai-chat-md a { @apply text-brand-600 underline; }
+.ai-chat-md hr { @apply my-3 border-slate-200; }
+
+/* 流式输出光标：伪元素追加在最后一个块后面，随内容同行，不再另起一行 */
+.ai-chat-streaming.ai-chat-md > *:last-child::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: #3b82f6;
+  animation: ai-cursor-blink 0.8s infinite;
+}
+
+.dark .ai-chat-md { @apply text-slate-200; }
+.dark .ai-chat-md code { @apply bg-brand-900/40 text-brand-300; }
+
 @keyframes ai-cursor-blink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0; }

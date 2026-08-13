@@ -5,6 +5,8 @@ import {
   listNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  deleteNotification,
+  deleteAllReadNotifications,
   type AINotification,
 } from '../lib/ai';
 
@@ -18,12 +20,14 @@ export default function Notifications() {
   const { t } = useI18n();
   const [items, setItems] = useState<AINotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
 
   const load = async () => {
     try {
       setItems(await listNotifications());
-    } catch {
-      /* 忽略 */
+      setErr(null);
+    } catch (e) {
+      setErr(String(e));
     }
     setLoading(false);
   };
@@ -32,28 +36,57 @@ export default function Notifications() {
     load();
   }, []);
 
+  const notifyBadge = () => window.dispatchEvent(new CustomEvent('seoc:notify-update'));
+
   const handleRead = async (n: AINotification) => {
     if (n.read) return;
+    // 先乐观更新界面
     setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
-    window.dispatchEvent(new CustomEvent('seoc:notify-update'));
     try {
       await markNotificationRead(n.id);
-    } catch {
-      /* 忽略 */
+      notifyBadge();
+    } catch (e) {
+      setErr(`标记失败: ${e}`);
+      load();
     }
   };
 
   const handleReadAll = async () => {
     setItems((prev) => prev.map((x) => ({ ...x, read: true })));
-    window.dispatchEvent(new CustomEvent('seoc:notify-update'));
     try {
       await markAllNotificationsRead();
-    } catch {
-      /* 忽略 */
+      notifyBadge();
+    } catch (e) {
+      setErr(`标记失败: ${e}`);
+      load();
+    }
+  };
+
+  const handleDelete = async (n: AINotification) => {
+    setItems((prev) => prev.filter((x) => x.id !== n.id));
+    try {
+      await deleteNotification(n.id);
+      notifyBadge();
+    } catch (e) {
+      setErr(`删除失败: ${e}`);
+      load();
+    }
+  };
+
+  const handleDeleteRead = async () => {
+    if (!confirm(t('notify.deleteReadConfirm'))) return;
+    setItems((prev) => prev.filter((x) => !x.read));
+    try {
+      await deleteAllReadNotifications();
+      notifyBadge();
+    } catch (e) {
+      setErr(`删除失败: ${e}`);
+      load();
     }
   };
 
   const unread = items.filter((n) => !n.read).length;
+  const readCount = items.length - unread;
 
   return (
     <div className="container-x max-w-3xl py-8">
@@ -63,13 +96,24 @@ export default function Notifications() {
             <h1 className="text-2xl font-bold text-brand-950">{t('notify.title')}</h1>
             <p className="mt-1 text-sm text-slate-500">{t('notify.subtitle')}</p>
           </div>
-          {unread > 0 && (
-            <button onClick={handleReadAll} className="btn-outline text-sm">
-              {t('notify.readAll')}
-            </button>
-          )}
+          <div className="flex gap-2">
+            {unread > 0 && (
+              <button onClick={handleReadAll} className="btn-outline text-sm">
+                {t('notify.readAll')}
+              </button>
+            )}
+            {readCount > 0 && (
+              <button onClick={handleDeleteRead} className="btn-ghost text-sm text-slate-500">
+                {t('notify.deleteRead')}
+              </button>
+            )}
+          </div>
         </div>
       </Reveal>
+
+      {err && (
+        <p className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{err}</p>
+      )}
 
       <Reveal>
         <div className="card overflow-hidden">
@@ -103,6 +147,19 @@ export default function Notifications() {
                           {new Date(n.created_at).toLocaleString('zh-CN')}
                         </p>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(n);
+                        }}
+                        className="shrink-0 rounded-md px-2 py-1 text-xs text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30"
+                        title={t('notify.delete')}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
                     </div>
                   </li>
                 );

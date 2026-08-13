@@ -121,6 +121,23 @@ export async function getModels(): Promise<AIModel[]> {
   return data as AIModel[];
 }
 
+/**
+ * 获取全部模型（含已禁用）——仅供管理页使用，用于重新启用被禁用的模型
+ */
+export async function getAllModels(): Promise<AIModel[]> {
+  if (!isCloudEnabled || !supabase) {
+    return getModels();
+  }
+
+  const { data, error } = await supabase
+    .from('ai_models')
+    .select('*')
+    .order('sort_order');
+
+  if (error) throw error;
+  return data as AIModel[];
+}
+
 // ============================================================
 // 获取余额
 // ============================================================
@@ -1017,7 +1034,12 @@ export async function markNotificationRead(id: string): Promise<void> {
     localStorage.setItem('seoc.local.notifications', JSON.stringify(list));
     return;
   }
-  const { error } = await supabase.rpc('mark_notification_read', { p_id: id });
+  // 直连更新（self update 策略，只允许把自己的通知标记为已读）
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('id', id)
+    .eq('read', false);
   if (error) throw error;
 }
 
@@ -1027,7 +1049,30 @@ export async function markAllNotificationsRead(): Promise<void> {
     localStorage.setItem('seoc.local.notifications', JSON.stringify(list.map((n) => ({ ...n, read: true }))));
     return;
   }
-  const { error } = await supabase.rpc('mark_all_notifications_read');
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('read', false);
+  if (error) throw error;
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  if (!isCloudEnabled || !supabase) {
+    const list = JSON.parse(localStorage.getItem('seoc.local.notifications') || '[]') as AINotification[];
+    localStorage.setItem('seoc.local.notifications', JSON.stringify(list.filter((n) => n.id !== id)));
+    return;
+  }
+  const { error } = await supabase.from('notifications').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteAllReadNotifications(): Promise<void> {
+  if (!isCloudEnabled || !supabase) {
+    const list = JSON.parse(localStorage.getItem('seoc.local.notifications') || '[]') as AINotification[];
+    localStorage.setItem('seoc.local.notifications', JSON.stringify(list.filter((n) => !n.read)));
+    return;
+  }
+  const { error } = await supabase.from('notifications').delete().eq('read', true);
   if (error) throw error;
 }
 

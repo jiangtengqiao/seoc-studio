@@ -240,6 +240,12 @@ const zhCN: Dict = {
 
   'notify.empty': '暂无通知',
 
+  'notify.delete': '删除',
+
+  'notify.deleteRead': '删除已读',
+
+  'notify.deleteReadConfirm': '确定删除全部已读通知？',
+
   'ai.api.subtitle': '通过 OpenAI 兼容接口调用 AI 模型，研点计费',
 
   'ai.api.createKey': '创建 API 密钥',
@@ -520,6 +526,12 @@ const zhTW: Dict = {
   'notify.loading': '載入中…',
 
   'notify.empty': '暫無通知',
+
+  'notify.delete': '刪除',
+
+  'notify.deleteRead': '刪除已讀',
+
+  'notify.deleteReadConfirm': '確定刪除全部已讀通知？',
 
   'ai.api.subtitle': '透過 OpenAI 相容介面呼叫 AI 模型，研點計費',
 
@@ -802,6 +814,12 @@ const en: Dict = {
 
   'notify.empty': 'No notifications yet',
 
+  'notify.delete': 'Delete',
+
+  'notify.deleteRead': 'Delete read',
+
+  'notify.deleteReadConfirm': 'Delete all read notifications?',
+
   'ai.api.subtitle': 'Call AI models via OpenAI-compatible endpoints, billed in Research Points',
 
   'ai.api.createKey': 'Create API key',
@@ -1082,6 +1100,12 @@ const ja: Dict = {
   'notify.loading': '読み込み中…',
 
   'notify.empty': '通知はまだありません',
+
+  'notify.delete': '削除',
+
+  'notify.deleteRead': '既読を削除',
+
+  'notify.deleteReadConfirm': 'すべての既読通知を削除しますか？',
 
   'ai.api.subtitle': 'OpenAI 互換インターフェースで AI モデルを呼び出し、ポイントで課金',
 
@@ -1364,6 +1388,12 @@ const ko: Dict = {
 
   'notify.empty': '알림이 없습니다',
 
+  'notify.delete': '삭제',
+
+  'notify.deleteRead': '읽은 알림 삭제',
+
+  'notify.deleteReadConfirm': '모든 읽은 알림을 삭제할까요?',
+
   'ai.api.subtitle': 'OpenAI 호환 인터페이스로 AI 모델 호출, 포인트로 과금',
 
   'ai.api.createKey': 'API 키 생성',
@@ -1644,6 +1674,12 @@ const fr: Dict = {
   'notify.loading': 'Chargement…',
 
   'notify.empty': 'Aucune notification',
+
+  'notify.delete': 'Supprimer',
+
+  'notify.deleteRead': 'Supprimer lues',
+
+  'notify.deleteReadConfirm': 'Supprimer toutes les notifications lues ?',
 
   'ai.api.subtitle': 'Appelez les modèles IA via une interface compatible OpenAI, facturée en points',
 
@@ -1926,6 +1962,12 @@ const de: Dict = {
 
   'notify.empty': 'Keine Benachrichtigungen',
 
+  'notify.delete': 'Löschen',
+
+  'notify.deleteRead': 'Gelesene löschen',
+
+  'notify.deleteReadConfirm': 'Alle gelesenen Benachrichtigungen löschen?',
+
   'ai.api.subtitle': 'Rufen Sie KI-Modelle über OpenAI-kompatible Schnittstellen auf, Abrechnung in Punkten',
 
   'ai.api.createKey': 'API-Schlüssel erstellen',
@@ -2207,6 +2249,12 @@ const es: Dict = {
 
   'notify.empty': 'Sin notificaciones',
 
+  'notify.delete': 'Eliminar',
+
+  'notify.deleteRead': 'Eliminar leídas',
+
+  'notify.deleteReadConfirm': '¿Eliminar todas las notificaciones leídas?',
+
   'ai.api.subtitle': 'Llama a modelos IA mediante interfaz compatible con OpenAI, facturado en puntos',
 
   'ai.api.createKey': 'Crear clave API',
@@ -2487,6 +2535,12 @@ const ru: Dict = {
   'notify.loading': 'Загрузка…',
 
   'notify.empty': 'Уведомлений нет',
+
+  'notify.delete': 'Удалить',
+
+  'notify.deleteRead': 'Удалить прочитанные',
+
+  'notify.deleteReadConfirm': 'Удалить все прочитанные уведомления?',
 
   'ai.api.subtitle': 'Вызов ИИ-моделей через OpenAI-совместимый интерфейс, тарификация в баллах',
 

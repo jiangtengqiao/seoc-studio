@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  getModels,
+  getAllModels,
   updateModel,
   getPlatformStats,
   listAllTopupOrders,
@@ -61,7 +61,8 @@ export default function AIAdminPanel() {
 
   const loadModels = async () => {
     try {
-      const m = await getModels();
+      // 全部模型（含已禁用）：管理页需要能看到并重新启用被禁用的模型
+      const m = await getAllModels();
       setModels(m);
       setModelDrafts(
         Object.fromEntries(

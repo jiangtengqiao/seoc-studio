@@ -116,6 +116,26 @@ export default function AIChat() {
     })();
   }, []);
 
+  // 余额轻量轮询：每 30 秒 + 窗口重新聚焦时刷新一次（单行查询，开销极小）
+  // 解决管理端确认充值后右上角余额显示延迟的问题
+  useEffect(() => {
+    let alive = true;
+    const refreshBalance = () => {
+      getBalance()
+        .then((b) => {
+          if (alive) setBalance(b);
+        })
+        .catch(() => {});
+    };
+    const timer = setInterval(refreshBalance, 30000);
+    window.addEventListener('focus', refreshBalance);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      window.removeEventListener('focus', refreshBalance);
+    };
+  }, []);
+
   // 会员等级或模型变化时，自动切换到第一个可用的模型
   useEffect(() => {
     if (!models.length) return;
@@ -706,35 +726,34 @@ export default function AIChat() {
           )}
 
           {messages.map((msg, i) => (
-            <div key={i} className={`mb-6 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`flex max-w-[85%] flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                {/* 头像 */}
-                <div className={`mb-1.5 flex items-center gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  {msg.role === 'assistant' ? (
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-800 text-xs font-bold text-white">
-                      R
-                    </span>
-                  ) : (
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-xs font-medium text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
-                      {(profile?.nickname || profile?.email || 'U').charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                  <span className="text-xs text-slate-400">
-                    {msg.role === 'assistant' ? t('ai.chat.title') : profile?.nickname || profile?.email}
+            <div key={i} className={`mb-5 flex w-full items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              {/* 头像（固定在行首） */}
+              <div className="shrink-0">
+                {msg.role === 'assistant' ? (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-800 text-xs font-bold text-white">
+                    R
                   </span>
-                </div>
-                {/* 气泡 */}
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-xs font-medium text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
+                    {(profile?.nickname || profile?.email || 'U').charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              {/* 名称 + 气泡：flex-1 min-w-0 保证不超出容器，w-fit 保证短消息气泡贴字 */}
+              <div className={`flex min-w-0 flex-1 flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <span className="mb-1 text-xs text-slate-400">
+                  {msg.role === 'assistant' ? t('ai.chat.title') : profile?.nickname || profile?.email}
+                </span>
                 <div
-                  className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                  className={`w-fit max-w-full rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed shadow-sm ${
                     msg.role === 'user'
                       ? 'ai-bubble-user rounded-br-md'
                       : 'ai-bubble-assistant rounded-bl-md'
                   }`}
                 >
                   {msg.role === 'assistant' ? (
-                    <div className="prose-seoc !text-sm !leading-7">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content || (streaming && i === messages.length - 1 ? '' : '')}</ReactMarkdown>
-                      {streaming && i === messages.length - 1 && <span className="ai-streaming-cursor" />}
+                    <div className={`prose-seoc ai-chat-md ${streaming && i === messages.length - 1 ? 'ai-chat-streaming' : ''}`}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                     </div>
                   ) : (
                     <p className="whitespace-pre-wrap break-words">{msg.content}</p>
