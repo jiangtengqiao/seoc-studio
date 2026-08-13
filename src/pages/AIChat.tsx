@@ -28,6 +28,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   interrupted?: boolean;
+  interruptReason?: string;
   cost?: number;
   isFree?: boolean;
 }
@@ -243,21 +244,6 @@ export default function AIChat() {
     const model = models.find((x) => x.id === selectedModel);
     if (model && !canUseModel(effectiveTier, model)) return;
 
-    // 预检余额
-    if (balance.balance <= 0 && balance.free_remaining <= 0) {
-      const m = models.find((x) => x.id === selectedModel);
-      if (m && m.input_price + m.output_price > 0) {
-        setInterruptNotice({
-          reason: t('ai.chat.noBalance'),
-          tokensUsed: 0,
-          cost: 0,
-          balance: balance.balance,
-          freeRemaining: balance.free_remaining,
-        });
-        return;
-      }
-    }
-
     setInput('');
     setStreaming(true);
     setEstimatedCost(0);
@@ -313,6 +299,7 @@ export default function AIChat() {
             updated[updated.length - 1] = {
               ...updated[updated.length - 1],
               interrupted: true,
+              interruptReason: reason,
               cost,
             };
             return updated;
@@ -349,7 +336,6 @@ export default function AIChat() {
             updated[updated.length - 1] = {
               ...updated[updated.length - 1],
               content: accumulated || `**错误**: ${error}`,
-              interrupted: true,
             };
             return updated;
           });
@@ -365,6 +351,7 @@ export default function AIChat() {
               ...updated[updated.length - 1],
               content: accumulated,
               interrupted: true,
+              interruptReason: t('ai.chat.stopped'),
             };
             return updated;
           });
@@ -690,7 +677,7 @@ export default function AIChat() {
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
               <span className="text-sm font-medium text-amber-800">
-                {t('ai.chat.interrupted')} {interruptNotice.reason}
+                {interruptNotice.reason}
               </span>
               <span className="text-xs text-amber-600">
                 {t('ai.chat.tokenCost')}: {interruptNotice.cost.toFixed(4)} {t('ai.credits.name')}
@@ -767,7 +754,7 @@ export default function AIChat() {
                       <span>{t('ai.chat.tokenCost')}: {msg.cost.toFixed(4)} {t('ai.credits.name')}</span>
                     )}
                     {msg.interrupted && (
-                      <span className="text-amber-500">{t('ai.chat.interrupted')}</span>
+                      <span className="text-amber-500">{msg.interruptReason || t('ai.chat.stopped')}</span>
                     )}
                   </div>
                 )}

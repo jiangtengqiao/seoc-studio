@@ -207,14 +207,19 @@ export async function sendMessage(
 
   if (!response.ok) {
     let message = '请求失败';
+    let code = '';
     try {
       const err = await response.json();
       message = err.error || message;
+      code = err.code || '';
     } catch {
       /* 非 JSON 响应 */
     }
     if (signal?.aborted) {
       callbacks.onAbort?.();
+    } else if (response.status === 402 || code === 'insufficient_balance') {
+      // 余额/免费额度不足：走中断提示（横幅 + 充值入口），而不是错误气泡
+      callbacks.onInterrupt?.(message, 0, 0);
     } else {
       callbacks.onError?.(message);
     }

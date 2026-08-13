@@ -196,10 +196,15 @@ Deno.serve(async (req) => {
         .eq('user_id', userId);
     }
 
-    // 5. 预检：余额 + 免费额度均为 0 时拒绝
+    // 5. 预检：余额 + 免费额度均为 0 时拒绝（此时免费额度已重置为今日额度）
     if (balance <= 0 && freeRemaining <= 0 && model.input_price + model.output_price > 0) {
       return new Response(
-        JSON.stringify({ error: '研点不足', balance, free_remaining: freeRemaining }),
+        JSON.stringify({
+          error: '研点不足：今日免费额度已用完，请充值研点或明天再试',
+          code: 'insufficient_balance',
+          balance,
+          free_remaining: freeRemaining,
+        }),
         { status: 402, headers: { ...cors, 'Content-Type': 'application/json' } }
       );
     }

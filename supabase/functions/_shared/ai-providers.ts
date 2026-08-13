@@ -263,8 +263,10 @@ export function estimateTokens(text: string): number {
 
 /**
  * 免费额度重置检查
+ * 修复：原判断 freeResetDate < today，当天创建的用户永远不重置（首日 == 今日，
+ * free_remaining 永远是 0，免费额度机制完全失效）。改为“不等于今天”即重置。
  */
 export function shouldResetFreeQuota(freeResetDate: string): boolean {
   const today = new Date().toISOString().slice(0, 10);
-  return freeResetDate < today;
+  return freeResetDate !== today;
 }
