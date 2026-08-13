@@ -369,6 +369,28 @@ export default function AIChat() {
   };
 
   // 门槛拦截：未达 Lite 会员，显示购买引导
+  if (profile?.is_banned) {
+    return (
+      <div className="container-x py-12">
+        <Reveal>
+          <div className="mx-auto max-w-2xl">
+            <div className="card overflow-hidden">
+              <div className="panel-strip" />
+              <div className="p-8 text-center">
+                <span className="mb-4 inline-block text-6xl font-bold opacity-30">🚫</span>
+                <h1 className="text-2xl font-bold text-brand-950">账户已被封禁</h1>
+                <p className="mt-3 text-sm text-slate-500">
+                  您的账户已被管理员封禁，研智助手与 API 暂不可用。如有疑问请联系 jiangtengqiao@qq.com。
+                </p>
+              </div>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    );
+  }
+
+  // 门槛拦截：未达 Lite 会员，显示购买引导
   if (!canUseAI) {
     return (
       <div className="container-x py-12">

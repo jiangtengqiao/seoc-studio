@@ -230,6 +230,16 @@ const zhCN: Dict = {
 
   'ai.api.title': 'API 开放平台',
 
+  'notify.title': '通知中心',
+
+  'notify.subtitle': '订单、会员与系统消息',
+
+  'notify.readAll': '全部已读',
+
+  'notify.loading': '加载中…',
+
+  'notify.empty': '暂无通知',
+
   'ai.api.subtitle': '通过 OpenAI 兼容接口调用 AI 模型，研点计费',
 
   'ai.api.createKey': '创建 API 密钥',
@@ -500,6 +510,16 @@ const zhTW: Dict = {
   'ai.credits.typeAdjust': '管理員調整',
 
   'ai.api.title': 'API 開放平台',
+
+  'notify.title': '通知中心',
+
+  'notify.subtitle': '訂單、會員與系統訊息',
+
+  'notify.readAll': '全部已讀',
+
+  'notify.loading': '載入中…',
+
+  'notify.empty': '暫無通知',
 
   'ai.api.subtitle': '透過 OpenAI 相容介面呼叫 AI 模型，研點計費',
 
@@ -772,6 +792,16 @@ const en: Dict = {
 
   'ai.api.title': 'API Platform',
 
+  'notify.title': 'Notifications',
+
+  'notify.subtitle': 'Orders, membership and system messages',
+
+  'notify.readAll': 'Mark all read',
+
+  'notify.loading': 'Loading…',
+
+  'notify.empty': 'No notifications yet',
+
   'ai.api.subtitle': 'Call AI models via OpenAI-compatible endpoints, billed in Research Points',
 
   'ai.api.createKey': 'Create API key',
@@ -1042,6 +1072,16 @@ const ja: Dict = {
   'ai.credits.typeAdjust': '管理者調整',
 
   'ai.api.title': 'APIプラットフォーム',
+
+  'notify.title': '通知センター',
+
+  'notify.subtitle': '注文・メンバーシップ・システムメッセージ',
+
+  'notify.readAll': 'すべて既読にする',
+
+  'notify.loading': '読み込み中…',
+
+  'notify.empty': '通知はまだありません',
 
   'ai.api.subtitle': 'OpenAI 互換インターフェースで AI モデルを呼び出し、ポイントで課金',
 
@@ -1314,6 +1354,16 @@ const ko: Dict = {
 
   'ai.api.title': 'API 플랫폼',
 
+  'notify.title': '알림 센터',
+
+  'notify.subtitle': '주문, 멤버십 및 시스템 메시지',
+
+  'notify.readAll': '모두 읽음',
+
+  'notify.loading': '불러오는 중…',
+
+  'notify.empty': '알림이 없습니다',
+
   'ai.api.subtitle': 'OpenAI 호환 인터페이스로 AI 모델 호출, 포인트로 과금',
 
   'ai.api.createKey': 'API 키 생성',
@@ -1584,6 +1634,16 @@ const fr: Dict = {
   'ai.credits.typeAdjust': 'Ajustement admin',
 
   'ai.api.title': 'Plateforme API',
+
+  'notify.title': 'Centre de notifications',
+
+  'notify.subtitle': 'Commandes, adhésion et messages système',
+
+  'notify.readAll': 'Tout marquer lu',
+
+  'notify.loading': 'Chargement…',
+
+  'notify.empty': 'Aucune notification',
 
   'ai.api.subtitle': 'Appelez les modèles IA via une interface compatible OpenAI, facturée en points',
 
@@ -1856,6 +1916,16 @@ const de: Dict = {
 
   'ai.api.title': 'API-Plattform',
 
+  'notify.title': 'Benachrichtigungen',
+
+  'notify.subtitle': 'Bestellungen, Mitgliedschaft und Systemmeldungen',
+
+  'notify.readAll': 'Alle gelesen',
+
+  'notify.loading': 'Wird geladen…',
+
+  'notify.empty': 'Keine Benachrichtigungen',
+
   'ai.api.subtitle': 'Rufen Sie KI-Modelle über OpenAI-kompatible Schnittstellen auf, Abrechnung in Punkten',
 
   'ai.api.createKey': 'API-Schlüssel erstellen',
@@ -2127,6 +2197,16 @@ const es: Dict = {
 
   'ai.api.title': 'Plataforma API',
 
+  'notify.title': 'Centro de notificaciones',
+
+  'notify.subtitle': 'Pedidos, membresía y mensajes del sistema',
+
+  'notify.readAll': 'Marcar todo leído',
+
+  'notify.loading': 'Cargando…',
+
+  'notify.empty': 'Sin notificaciones',
+
   'ai.api.subtitle': 'Llama a modelos IA mediante interfaz compatible con OpenAI, facturado en puntos',
 
   'ai.api.createKey': 'Crear clave API',
@@ -2397,6 +2477,16 @@ const ru: Dict = {
   'ai.credits.typeAdjust': 'Корректировка админа',
 
   'ai.api.title': 'API-платформа',
+
+  'notify.title': 'Уведомления',
+
+  'notify.subtitle': 'Заказы, подписка и системные сообщения',
+
+  'notify.readAll': 'Прочитать все',
+
+  'notify.loading': 'Загрузка…',
+
+  'notify.empty': 'Уведомлений нет',
 
   'ai.api.subtitle': 'Вызов ИИ-моделей через OpenAI-совместимый интерфейс, тарификация в баллах',
 

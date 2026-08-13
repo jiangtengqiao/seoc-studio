@@ -38,6 +38,7 @@ export interface Profile {
   created_at: string;
   membership_tier?: 'free' | 'lite' | 'plus' | 'pro' | 'max';
   membership_expires_at?: string | null;
+  is_banned?: boolean;
 }
 
 export interface Issue {

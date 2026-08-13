@@ -5,6 +5,7 @@ import { useTheme, type ThemeMode } from '../lib/theme';
 import { LANGS, useI18n } from '../lib/i18n';
 import { BRAND, COMPANY_CN, COMPANY_EN, CONTACT_EMAIL } from '../lib/types';
 import { BackToTop, ScrollProgress, SiteUptime } from './fx';
+import { getUnreadNotificationCount, checkMembershipReminders } from '../lib/ai';
 
 /** 主导航常驻项 */
 const PRIMARY_NAV = [
@@ -304,6 +305,25 @@ export default function Layout() {
   const { profile, logout, mode } = useAuth();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+
+  // 登录后：拉取未读通知数 + 触发会员到期提醒检查（安全定义者函数只处理本人）
+  useEffect(() => {
+    if (!profile) {
+      setUnread(0);
+      return;
+    }
+    let alive = true;
+    checkMembershipReminders().catch(() => {});
+    getUnreadNotificationCount()
+      .then((n) => {
+        if (alive) setUnread(n);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [profile]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -333,6 +353,24 @@ export default function Layout() {
             <LangMenu />
             <ThemeToggle />
             {mode === 'local' && <span className="badge bg-amber-50 text-amber-700">{t('nav.demo')}</span>}
+            {profile && (
+              <Link
+                to="/notifications"
+                title={t('notify.title')}
+                aria-label={t('notify.title')}
+                className="relative flex items-center rounded-lg px-2.5 py-2 text-slate-600 transition hover:bg-slate-100"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unread > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
+              </Link>
+            )}
             {profile ? (
               <>
                 {profile.role === 'admin' && (
@@ -384,6 +422,24 @@ export default function Layout() {
               <div className="mt-2 flex items-center gap-2">
                 <LangMenu />
                 <ThemeToggle />
+                {profile && (
+                  <Link
+                    to="/notifications"
+                    onClick={() => setOpen(false)}
+                    className="relative flex items-center rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+                    aria-label={t('notify.title')}
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                    {unread > 0 && (
+                      <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                        {unread > 99 ? '99+' : unread}
+                      </span>
+                    )}
+                  </Link>
+                )}
               </div>
               <div className="mt-2 flex gap-2">
                 {profile ? (

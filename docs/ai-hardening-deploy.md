@@ -1,17 +1,18 @@
-# 研智助手 v7 安全加固 · 部署说明
+# 研智助手 v7+v8 安全加固与功能补齐 · 部署说明
 
 本批次修复了研智助手的计费漏洞、RLS 越权、订单伪造、死模型、并发透支等问题，
-并补齐了会话历史、停止生成、OpenAI 兼容与限流。**上线需要三步：数据库迁移 → Edge Function 重新部署 → 前端重建。**
+并补齐了会话历史、停止生成、OpenAI 兼容、限流、站内通知、用户管理、在线模型编辑、
+内容审核、会员到期提醒等系统级功能。
+**上线需要三步：数据库迁移 → Edge Function 重新部署 → 前端重建。**
 
 ## 一、数据库迁移（必做）
 
-在 Supabase 控制台 **SQL Editor** 中整体执行一次（可重复执行，幂等）：
+在 Supabase 控制台 **SQL Editor** 中，**先执行 fix-v7，再执行 fix-v8**（均为幂等，可重复执行）：
 
-```
-supabase/fix-v7-ai-hardening.sql
-```
+1. `supabase/fix-v7-ai-hardening.sql` —— 计费与权限加固
+2. `supabase/fix-v8-ai-admin.sql` —— 管理功能
 
-该脚本做了这些事：
+fix-v7 做了这些事：
 
 | # | 修复 | 说明 |
 |---|------|------|
@@ -27,6 +28,16 @@ supabase/fix-v7-ai-hardening.sql
 | 10 | `get_ai_platform_stats` RPC | Admin 页此前显示的是管理员个人统计，现为全站统计 |
 | 11 | 新建 `ai_conversations` / `ai_messages` 表 + 保存 RPC | 聊天历史持久化 |
 | 12 | 重写 `cancel_expired_orders` | 修复对 admin_note 的引用 |
+
+fix-v8 做了这些事：
+
+| # | 新增 | 说明 |
+|---|------|------|
+| 1 | `profiles.is_banned` | 封禁字段，Edge Function 强制校验 |
+| 2 | `notifications` 站内通知 | 订单确认/驳回自动通知用户，顶栏铃铛展示 |
+| 3 | `check_membership_expiry_reminders` RPC | 会员 3 天内到期自动提醒（应用加载时触发，每天最多一次） |
+| 4 | `ai_content_filters` 内容审核词表 | 聊天/API 输入命中敏感词即拒绝，Admin 在线维护 |
+| 5 | 管理员 RPC | 用户列表 / 调整研点 / 设置会员 / 封禁解封 |
 
 > 注意：`ai-platform.sql` 中与旧价格冲突的第二段模型 INSERT 已移除（避免再次覆盖新价格）。
 
@@ -66,13 +77,17 @@ npm run dev       # 本地冒烟
 3. 选 `claude-sonnet-4` → 模型列表中不应再出现（已禁用）。
 4. 用户取消 pending 订单 → 状态变为「已驳回」并写 admin_note「用户主动取消」。
 5. 聊天页刷新 → 会话在侧边栏保留；停止按钮能中断生成。
-6. Admin「AI 模型管理」统计卡显示全站数据（含今日调用数、待确认订单数）。
+6. Admin「AI 平台管理」统计卡显示全站数据（含今日调用数、待确认订单数）。
 7. OpenAI 客户端先请求 `GET /v1/models` → 返回模型列表。
 8. 一分钟内连发 16 条聊天请求 → 第 16 条返回 429。
+9. 订单确认/驳回后 → 用户顶栏铃铛收到站内通知。
+10. Admin 在线改模型价格 → 保存后立即生效。
+11. Admin 封禁某用户 → 该用户聊天/API 立即被 403 拒绝。
+12. 聊天输入命中 Admin 配置的敏感词 → 返回 400「输入包含违规内容」。
 
 ## 五、回滚
 
 - 前端：`git revert <commit>`
-- 数据库：执行 `supabase/ai-platform.sql` 会重建旧策略；如需彻底回滚 RLS 变更，手动执行：
+- 数据库：RLS 相关变更如需回滚，手动执行
   `create policy "ai_credits self update" on ai_credits for update using (auth.uid() = user_id);`（不推荐，存在余额篡改漏洞）
 - Edge Function：用旧代码重新部署（git 历史中取 `supabase/functions/` 旧版本）。

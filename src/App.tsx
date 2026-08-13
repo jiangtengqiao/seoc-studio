@@ -18,6 +18,7 @@ import { ForumPage, ForumPostPage } from './pages/Forum';
 import AIChat from './pages/AIChat';
 import AICredits from './pages/AICredits';
 import AIApiKeys from './pages/AIApiKeys';
+import Notifications from './pages/Notifications';
 import { Link } from 'react-router-dom';
 import { RequireAuth } from './components/AuthGate';
 
@@ -71,6 +72,7 @@ export default function App() {
             <Route path="ai" element={<RequireAuth reason="研智助手仅对登录用户开放。"><AIChat /></RequireAuth>} />
             <Route path="ai/credits" element={<RequireAuth><AICredits /></RequireAuth>} />
             <Route path="ai/api" element={<RequireAuth><AIApiKeys /></RequireAuth>} />
+            <Route path="notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

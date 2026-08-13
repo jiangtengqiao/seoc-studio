@@ -37,7 +37,8 @@ function localProfile(userId: string): Profile | null {
     linked_accounts: [],
     created_at: new Date().toISOString(),
     membership_tier: 'free',
-    membership_expires_at: null
+    membership_expires_at: null,
+    is_banned: false
   };
 }
 
@@ -66,7 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         linked_accounts: [],
         created_at: user.created_at,
         membership_tier: 'free',
-        membership_expires_at: null
+        membership_expires_at: null,
+        is_banned: false
       }
     );
   }, []);

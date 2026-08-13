@@ -119,11 +119,42 @@ Deno.serve(async (req) => {
     // 3.5 会员等级校验（服务端强制）
     const { data: profileData } = await adminClient
       .from('profiles')
-      .select('membership_tier, membership_expires_at')
+      .select('membership_tier, membership_expires_at, is_banned')
       .eq('id', userId)
       .maybeSingle();
     const userTier = (profileData?.membership_tier as string) || 'free';
     const membershipExpiresAt = (profileData?.membership_expires_at as string) || null;
+
+    // 3.6 封禁校验
+    if (profileData?.is_banned) {
+      return new Response(
+        JSON.stringify({ error: '账户已被封禁，如有疑问请联系管理员', code: 'banned' }),
+        { status: 403, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 3.7 内容审核：命中敏感词直接拒绝
+    const { data: filterRows } = await adminClient
+      .from('ai_content_filters')
+      .select('pattern')
+      .eq('enabled', true);
+    const bannedPatterns = ((filterRows || []) as { pattern: string }[])
+      .map((r) => r.pattern.toLowerCase())
+      .filter((p) => p.length > 0);
+    if (bannedPatterns.length > 0) {
+      const userInput = messages
+        .filter((m: ChatMessage) => m.role === 'user')
+        .map((m: ChatMessage) => m.content)
+        .join('\n')
+        .toLowerCase();
+      if (bannedPatterns.some((p) => userInput.includes(p))) {
+        return new Response(
+          JSON.stringify({ error: '输入包含违规内容，请修改后重试', code: 'content_filter' }),
+          { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     const tierCheck = canUseModelWithTier(userTier, membershipExpiresAt, model.min_tier || 'lite');
     if (!tierCheck.ok) {
       return new Response(

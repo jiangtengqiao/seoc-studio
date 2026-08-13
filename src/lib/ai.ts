@@ -622,7 +622,7 @@ export const TIER_INFO: Record<MembershipTier, { name: string; priceMonthly: num
     priceYearly: 128,
     grantedPoints: 5000,
     color: 'blue',
-    perks: ['解锁 7 个基础 AI 模型', '每月赠送 5000 研点', '每日免费额度', '基础 API 调用'],
+    perks: ['解锁 7 个基础模型', '每月赠送 5000 研点', '每日免费额度', '聊天记录云同步', '基础 API 调用'],
   },
   plus: {
     name: 'Plus 会员',
@@ -630,7 +630,7 @@ export const TIER_INFO: Record<MembershipTier, { name: string; priceMonthly: num
     priceYearly: 268,
     grantedPoints: 15000,
     color: 'purple',
-    perks: ['解锁全部 10 个 AI 模型', '每月赠送 15000 研点', '更高每日免费额度', '优先 API 调用'],
+    perks: ['解锁全部 10 个模型', '每月赠送 15000 研点', '更高每日免费额度', '聊天记录云同步', '优先 API 调用'],
   },
   pro: {
     name: 'Pro 会员',
@@ -638,7 +638,7 @@ export const TIER_INFO: Record<MembershipTier, { name: string; priceMonthly: num
     priceYearly: 588,
     grantedPoints: 40000,
     color: 'amber',
-    perks: ['解锁全部 12 个模型含 R1 推理', '每月赠送 40000 研点', '最高优先级', 'API 高并发'],
+    perks: ['解锁全部 12 个模型含 R1 推理', '每月赠送 40000 研点', '聊天记录云同步', 'API 高频调用'],
   },
   max: {
     name: 'Max 会员',
@@ -646,7 +646,7 @@ export const TIER_INFO: Record<MembershipTier, { name: string; priceMonthly: num
     priceYearly: 998,
     grantedPoints: 80000,
     color: 'rose',
-    perks: ['全部模型无限制', '每月赠送 80000 研点', '最高优先级', '专属客服通道'],
+    perks: ['全部模型权益', '每月赠送 80000 研点', '聊天记录云同步', '专属客服通道'],
   },
 };
 
@@ -955,4 +955,185 @@ export async function getPlatformStats(): Promise<{
     pending_topup: number;
     pending_membership: number;
   };
+}
+
+// ============================================================
+// 站内通知
+// ============================================================
+
+export interface AINotification {
+  id: string;
+  title: string;
+  body: string;
+  kind: 'system' | 'order' | 'membership';
+  read: boolean;
+  created_at: string;
+}
+
+export async function listNotifications(limit = 50): Promise<AINotification[]> {
+  if (!isCloudEnabled || !supabase) {
+    const stored = localStorage.getItem('seoc.local.notifications');
+    return stored ? JSON.parse(stored) : [];
+  }
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('id, title, body, kind, read, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data as AINotification[];
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  if (!isCloudEnabled || !supabase) {
+    const list = JSON.parse(localStorage.getItem('seoc.local.notifications') || '[]') as AINotification[];
+    const idx = list.findIndex((n) => n.id === id);
+    if (idx >= 0) list[idx].read = true;
+    localStorage.setItem('seoc.local.notifications', JSON.stringify(list));
+    return;
+  }
+  const { error } = await supabase.rpc('mark_notification_read', { p_id: id });
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  if (!isCloudEnabled || !supabase) {
+    const list = JSON.parse(localStorage.getItem('seoc.local.notifications') || '[]') as AINotification[];
+    localStorage.setItem('seoc.local.notifications', JSON.stringify(list.map((n) => ({ ...n, read: true }))));
+    return;
+  }
+  const { error } = await supabase.rpc('mark_all_notifications_read');
+  if (error) throw error;
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  if (!isCloudEnabled || !supabase) {
+    const list = JSON.parse(localStorage.getItem('seoc.local.notifications') || '[]') as AINotification[];
+    return list.filter((n) => !n.read).length;
+  }
+  const { count, error } = await supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('read', false);
+  if (error) return 0;
+  return count || 0;
+}
+
+/** 会员到期提醒检查（应用加载时调用，安全定义者函数只处理本人） */
+export async function checkMembershipReminders(): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  await supabase.rpc('check_membership_expiry_reminders');
+}
+
+// ============================================================
+// 管理员：用户管理 / 模型编辑 / 内容审核
+// ============================================================
+
+export interface AIAdminUser {
+  id: string;
+  email: string;
+  nickname: string | null;
+  is_banned: boolean;
+  membership_tier: string;
+  membership_expires_at: string | null;
+  balance: number;
+  free_remaining: number;
+  free_reset_date: string | null;
+  created_at: string;
+}
+
+export async function adminListAIUsers(limit = 100, offset = 0): Promise<AIAdminUser[]> {
+  if (!isCloudEnabled || !supabase) return [];
+  const { data, error } = await supabase.rpc('admin_list_ai_users', {
+    p_limit: limit,
+    p_offset: offset,
+  });
+  if (error) throw error;
+  return (data || []) as AIAdminUser[];
+}
+
+export async function adminAdjustCredits(userId: string, amount: number, note: string): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  const { error } = await supabase.rpc('admin_adjust_ai_credits', {
+    p_user: userId,
+    p_amount: amount,
+    p_note: note,
+  });
+  if (error) throw error;
+}
+
+export async function adminSetMembership(userId: string, tier: string, days: number | null): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  const { error } = await supabase.rpc('admin_set_membership', {
+    p_user: userId,
+    p_tier: tier,
+    p_days: days,
+  });
+  if (error) throw error;
+}
+
+export async function adminSetBanned(userId: string, banned: boolean): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  const { error } = await supabase.rpc('admin_set_banned', {
+    p_user: userId,
+    p_banned: banned,
+  });
+  if (error) throw error;
+}
+
+export interface AIContentFilter {
+  id: string;
+  pattern: string;
+  note: string;
+  enabled: boolean;
+  created_at: string;
+}
+
+export async function listContentFilters(): Promise<AIContentFilter[]> {
+  if (!isCloudEnabled || !supabase) {
+    const stored = localStorage.getItem('seoc.local.content_filters');
+    return stored ? JSON.parse(stored) : [];
+  }
+  const { data, error } = await supabase
+    .from('ai_content_filters')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data as AIContentFilter[];
+}
+
+export async function addContentFilter(pattern: string, note = ''): Promise<void> {
+  if (!isCloudEnabled || !supabase) {
+    const list = JSON.parse(localStorage.getItem('seoc.local.content_filters') || '[]') as AIContentFilter[];
+    list.unshift({ id: `local-${Date.now()}`, pattern, note, enabled: true, created_at: new Date().toISOString() });
+    localStorage.setItem('seoc.local.content_filters', JSON.stringify(list));
+    return;
+  }
+  const { error } = await supabase.from('ai_content_filters').insert({ pattern, note });
+  if (error) throw error;
+}
+
+export async function removeContentFilter(id: string): Promise<void> {
+  if (!isCloudEnabled || !supabase) {
+    const list = JSON.parse(localStorage.getItem('seoc.local.content_filters') || '[]') as AIContentFilter[];
+    localStorage.setItem('seoc.local.content_filters', JSON.stringify(list.filter((f) => f.id !== id)));
+    return;
+  }
+  const { error } = await supabase.from('ai_content_filters').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/** 管理员在线更新模型配置 */
+export async function updateModel(
+  id: string,
+  patch: Partial<Pick<AIModel, 'input_price' | 'output_price' | 'free_daily_quota' | 'min_tier' | 'enabled'>>
+): Promise<void> {
+  if (!isCloudEnabled || !supabase) {
+    // 本地演示：仅提示成功
+    return;
+  }
+  const { error } = await supabase.from('ai_models').update(patch).eq('id', id);
+  if (error) throw error;
 }
