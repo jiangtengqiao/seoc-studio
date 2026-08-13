@@ -5,7 +5,8 @@
 //  - 原子扣费（spend_ai_credits / spend_ai_free_quota RPC，防并发透支）
 //  - 客户端断开（停止生成）时中断上游并做部分结算
 //  - 每用户每分钟请求限流
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// v12：移除 esm.sh supabase-js 依赖，改用零依赖 PostgREST 客户端（_shared/rest.ts）
+import { SupabaseRest } from '../_shared/rest.ts';
 import {
   callProviderStream,
   getProviderApiKey,
@@ -45,10 +46,11 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const adminClient = new SupabaseRest(supabaseUrl, serviceRoleKey, anonKey);
 
     // 验证 JWT
-    const { data: userData, error: authError } = await adminClient.auth.getUser(
+    const { data: userData, error: authError } = await adminClient.getUser(
       authHeader.replace('Bearer ', '')
     );
     if (authError || !userData.user) {

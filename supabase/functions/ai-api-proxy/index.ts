@@ -8,7 +8,7 @@
 //  - 原子扣费（spend_ai_credits RPC，防并发透支）
 //  - 每用户每分钟请求限流
 //  - 客户端断开时中断上游并做部分结算
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SupabaseRest } from '../_shared/rest.ts';
 import {
   callProvider,
   callProviderStream,
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     if (req.method === 'GET' && path.endsWith('/v1/models')) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+      const adminClient = new SupabaseRest(supabaseUrl, serviceRoleKey, Deno.env.get('SUPABASE_ANON_KEY') || '');
       const { data: models } = await adminClient
         .from('ai_models')
         .select('id, display_name, enabled')
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const adminClient = new SupabaseRest(supabaseUrl, serviceRoleKey, Deno.env.get('SUPABASE_ANON_KEY') || '');
 
     // 查询 API Key
     const { data: keyRow } = await adminClient
