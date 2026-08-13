@@ -522,6 +522,34 @@ export async function createTopupOrder(planKey: string): Promise<{ order: AITopu
 }
 
 /**
+ * 创建自定义金额充值订单（正整数元，1 元 = 1000 研点，无赠送比例）。
+ * 金额校验在服务端 RPC：1-100000 之间的正整数。
+ */
+export async function createCustomTopupOrder(yuan: number): Promise<{ order: AITopupOrder | null; ok: boolean }> {
+  if (!isCloudEnabled || !supabase) {
+    const balanceKey = 'seoc.local.ai_balance';
+    const stored = localStorage.getItem(balanceKey);
+    const credits: AIBalance = stored ? JSON.parse(stored) : { balance: 10000, free_remaining: 5, free_daily_quota: 5 };
+    credits.balance += yuan * 1000;
+    localStorage.setItem(balanceKey, JSON.stringify(credits));
+    const txs = JSON.parse(localStorage.getItem('seoc.local.ai_transactions') || '[]');
+    txs.unshift({
+      id: `local-tx-${Date.now()}`,
+      amount: yuan * 1000,
+      type: 'purchase',
+      note: `自定义充值（演示直接到账）`,
+      created_at: new Date().toISOString(),
+    });
+    localStorage.setItem('seoc.local.ai_transactions', JSON.stringify(txs));
+    return { order: null, ok: true };
+  }
+
+  const { data, error } = await supabase.rpc('create_ai_topup_order_custom', { p_yuan: yuan });
+  if (error) throw error;
+  return { order: data as AITopupOrder, ok: true };
+}
+
+/**
  * 查询本人充值订单
  */
 export async function listMyTopupOrders(limit = 20): Promise<AITopupOrder[]> {

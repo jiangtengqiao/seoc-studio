@@ -8,6 +8,7 @@ import {
   getTransactions,
   getUsageLogs,
   createTopupOrder,
+  createCustomTopupOrder,
   listMyTopupOrders,
   createMembershipOrder,
   listMyMembershipOrders,
@@ -59,6 +60,7 @@ export default function AICredits() {
   const [topupResult, setTopupResult] = useState<string | null>(null);
   const [membershipResult, setMembershipResult] = useState<string | null>(null);
   const [payMethod, setPayMethod] = useState<PaymentMethod>('alipay');
+  const [customYuan, setCustomYuan] = useState('');
 
   useEffect(() => {
     loadData();
@@ -123,6 +125,26 @@ export default function AICredits() {
         setTopupResult(`订单已提交（${plan.label}，${plan.points.toLocaleString()} 研点）。请扫描下方收款码完成支付，管理员核验到账后研点自动入账。`);
       } else {
         setTopupResult(`演示模式：${plan.points.toLocaleString()} 研点已到账。`);
+      }
+      await loadData();
+    } catch (e) {
+      setTopupResult(`提交失败: ${e}`);
+    }
+  };
+
+  const handleCustomTopup = async () => {
+    const yuan = Number(customYuan);
+    if (!Number.isInteger(yuan) || yuan < 1) {
+      setTopupResult('自定义金额必须为不小于 1 的正整数（元）');
+      return;
+    }
+    setTopupResult(null);
+    try {
+      const { order } = await createCustomTopupOrder(yuan);
+      if (order) {
+        setTopupResult(`订单已提交（自定义 ¥${yuan}，${(yuan * 1000).toLocaleString()} 研点）。请扫描下方收款码完成支付，管理员核验到账后研点自动入账。`);
+      } else {
+        setTopupResult(`演示模式：${(yuan * 1000).toLocaleString()} 研点已到账。`);
       }
       await loadData();
     } catch (e) {
@@ -415,6 +437,41 @@ export default function AICredits() {
                   </p>
                 </div>
               ))}
+            </div>
+            {/* 自定义金额充值（正整数） */}
+            <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-600">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                自定义金额充值
+                <span className="ml-1 text-xs font-normal text-slate-400">（正整数元 · 1 元 = 1000 研点 · 无赠送比例）</span>
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500">¥</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100000}
+                    step={1}
+                    value={customYuan}
+                    onChange={(e) => setCustomYuan(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCustomTopup()}
+                    placeholder="如 200"
+                    className="input !w-36 text-center"
+                  />
+                </div>
+                <p className="text-xs text-slate-400">
+                  {customYuan && Number.isInteger(Number(customYuan)) && Number(customYuan) >= 1
+                    ? `= ${(Number(customYuan) * 1000).toLocaleString()} 研点`
+                    : '输入金额后自动换算研点'}
+                </p>
+                <button
+                  onClick={handleCustomTopup}
+                  disabled={!customYuan || !(Number.isInteger(Number(customYuan)) && Number(customYuan) >= 1)}
+                  className="btn-primary shrink-0"
+                >
+                  提交订单
+                </button>
+              </div>
             </div>
             {topupResult && (
               <div className={`mt-4 rounded-lg px-4 py-3 text-sm ${topupResult.includes('失败') ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-800'}`}>
