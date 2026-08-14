@@ -43,8 +43,36 @@ export const LEGAL_TITLES: Record<string, string> = {
   'ai-content-disclaimer': 'AI 生成内容免责声明',
   'ai-data-privacy': 'AI 数据处理与隐私补充声明',
   'ai-api-terms': 'API 开放平台服务条款',
-  'ai-third-party-models': '第三方 AI 模型使用说明'
+  'ai-third-party-models': '第三方 AI 模型使用说明',
+  'account-cancellation-policy': '用户账号注销与数据删除政策',
+  'accessibility-statement': '无障碍声明',
+  'ugc-policy': '用户生成内容（UGC）政策',
+  'complaint-resolution-policy': '投诉处理与争议解决政策',
+  'third-party-processors': '第三方服务提供商与数据子处理者清单',
+  'gdpr-ccpa-compliance': 'GDPR/CCPA 合规补充声明',
+  'data-security-incident-response': '数据安全与数据泄露应急响应政策',
+  'acceptable-use-policy': '可接受使用政策',
+  'vulnerability-report-policy': '网络安全漏洞报告与响应政策',
+  'content-rating-standard': '内容分级与敏感信息标注规范',
+  'enterprise-license-agreement': '企业合作与商业授权协议',
+  'account-security-policy': '账号安全与身份验证政策',
+  'security-testing-authorization': '安全测试授权与范围指引',
+  'ai-content-rating-rules': 'AI生成内容分级标注实施细则',
+  'enterprise-data-protection-addendum': '企业合作数据保护附录',
+  'account-security-incident-guide': '账号安全事件应急指引',
+  'moderator-community-guidelines': '讨论区版主与社区管理规范'
 };
+
+export const LEGAL_CATEGORIES: { name: string; keys: string[] }[] = [
+  { name: '基础协议', keys: ['terms-of-service', 'privacy-policy', 'disclaimer', 'purchase-agreement', 'refund-policy'] },
+  { name: '知识产权', keys: ['ip-notice', 'ip-complaint', 'materials-license', 'anti-fraud'] },
+  { name: '社区与内容', keys: ['community-rules', 'ugc-policy', 'minor-protection', 'maintenance-policy', 'accessibility-statement', 'acceptable-use-policy', 'moderator-community-guidelines'] },
+  { name: 'AI 服务协议', keys: ['ai-service-agreement', 'ai-credits-policy', 'ai-content-disclaimer', 'ai-data-privacy', 'ai-api-terms', 'ai-third-party-models', 'ai-content-rating-rules'] },
+  { name: '账号与安全', keys: ['account-cancellation-policy', 'account-security-policy', 'account-security-incident-guide', 'data-security-incident-response', 'vulnerability-report-policy', 'security-testing-authorization'] },
+  { name: '数据与隐私', keys: ['gdpr-ccpa-compliance', 'third-party-processors', 'complaint-resolution-policy'] },
+  { name: '企业合作', keys: ['enterprise-license-agreement', 'enterprise-data-protection-addendum'] },
+  { name: '内容分级', keys: ['content-rating-standard'] },
+];
 
 function parseIssue(raw: string): Omit<Issue, 'id' | 'published_at'> | null {
   const m = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
