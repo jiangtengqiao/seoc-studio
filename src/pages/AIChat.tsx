@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { Reveal, BackButton } from '../components/fx';
+import { ConsentGate } from '../components/ConsentGate';
 import {
   sendMessage,
   getModels,
@@ -415,6 +416,7 @@ export default function AIChat() {
   // 门槛拦截：未达 Lite 会员，显示购买引导
   if (!canUseAI) {
     return (
+      <ConsentGate title="使用 AI 前请确认协议">
       <div className="container-x py-12">
         <Reveal>
           <div className="mx-auto max-w-2xl">
@@ -481,10 +483,12 @@ export default function AIChat() {
           </div>
         </Reveal>
       </div>
+      </ConsentGate>
     );
   }
 
   return (
+    <ConsentGate title="使用 AI 前请确认协议">
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
       {/* 会话侧边栏（桌面常驻，移动端开关） */}
       <aside
@@ -834,6 +838,7 @@ export default function AIChat() {
       </div>
       </div>
     </div>
+    </ConsentGate>
   );
 }
 

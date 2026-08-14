@@ -9,6 +9,7 @@ import { useI18n } from '../lib/i18n';
 import type { Issue } from '../lib/types';
 import { EmptyState, Spinner } from '../components/ui';
 import ContentGuard from '../components/ContentGuard';
+import { ConsentGate } from '../components/ConsentGate';
 import { HighlightButton, MarksPanel, MilestoneToast, QuickQuiz, ReadingTimer, useHighlights } from '../components/ReaderPlay';
 import { createHeadingComponents, extractToc, TocMobile, TocSidebar } from '../components/TocNav';
 
@@ -96,6 +97,7 @@ export default function Reader() {
   const nextPlan = issueNo < total ? product.toc[issueNo] : undefined;
 
   return (
+    <ConsentGate title="阅读前请确认协议">
     <div className={`container-x py-10 transition-all duration-500 ${focus ? 'max-w-2xl' : 'max-w-5xl'}`}>
       <div className="fixed left-0 top-16 z-40 h-1 bg-gradient-to-r from-brand-500 to-accent-500 transition-[width] duration-150" style={{ width: `${readProgress}%` }} />
       <MilestoneToast progress={readProgress} />
@@ -215,5 +217,6 @@ export default function Reader() {
         </ol>
       </div>
     </div>
+    </ConsentGate>
   );
 }

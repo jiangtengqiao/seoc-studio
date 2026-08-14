@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { Reveal, BackButton } from '../components/fx';
+import { ConsentGate } from '../components/ConsentGate';
 import {
   getBalance,
   getTransactions,
@@ -61,6 +62,7 @@ export default function AICredits() {
   const [membershipResult, setMembershipResult] = useState<string | null>(null);
   const [payMethod, setPayMethod] = useState<PaymentMethod>('alipay');
   const [customYuan, setCustomYuan] = useState('');
+  const [payConsented, setPayConsented] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -187,6 +189,7 @@ export default function AICredits() {
   const pendingMembership = membershipOrders.filter((o) => o.status === 'pending').length;
 
   return (
+    <ConsentGate title="购买前请确认协议">
     <div className="container-x py-8">
       <Reveal>
         <div className="mb-8 flex items-center gap-3">
@@ -339,7 +342,28 @@ export default function AICredits() {
                 {membershipResult}
               </div>
             )}
+            {/* 支付同意 */}
+            <div className="mt-5 rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20">
+              <label className="flex items-start gap-2 text-xs leading-5 text-amber-800 dark:text-amber-200">
+                <input
+                  type="checkbox"
+                  checked={payConsented}
+                  onChange={(e) => setPayConsented(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-amber-300 text-brand-600 focus:ring-brand-400"
+                />
+                <span>
+                  我已阅读并同意
+                  <Link to="/legal/purchase-agreement" className="text-brand-600 hover:underline" target="_blank">《数字内容购买协议》</Link>
+                  、
+                  <Link to="/legal/ai-credits-policy" className="text-brand-600 hover:underline" target="_blank">《研点购买与消费协议》</Link>
+                  及
+                  <Link to="/legal/refund-policy" className="text-brand-600 hover:underline" target="_blank">《退款政策》</Link>
+                  ，知悉会员费用不退还。
+                </span>
+              </label>
+            </div>
             {/* 会员收款码 */}
+            {payConsented && (
             <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
               <p className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-200">扫码支付（选中一种方式，扫码清晰呈现）</p>
               <div className="flex flex-wrap items-start gap-4">
@@ -376,6 +400,7 @@ export default function AICredits() {
                 </div>
               </div>
             </div>
+            )}
             {/* 待确认会员订单 */}
             {pendingMembership > 0 && (
               <div className="mt-5">
@@ -501,7 +526,27 @@ export default function AICredits() {
                 {topupResult}
               </div>
             )}
+            {/* 支付同意 */}
+            <div className="mt-5 rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20">
+              <label className="flex items-start gap-2 text-xs leading-5 text-amber-800 dark:text-amber-200">
+                <input
+                  type="checkbox"
+                  checked={payConsented}
+                  onChange={(e) => setPayConsented(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-amber-300 text-brand-600 focus:ring-brand-400"
+                />
+                <span>
+                  我已阅读并同意
+                  <Link to="/legal/purchase-agreement" className="text-brand-600 hover:underline" target="_blank">《数字内容购买协议》</Link>
+                  、
+                  <Link to="/legal/ai-credits-policy" className="text-brand-600 hover:underline" target="_blank">《研点购买与消费协议》</Link>
+                  及
+                  <Link to="/legal/refund-policy" className="text-brand-600 hover:underline" target="_blank">《退款政策》</Link>
+                </span>
+              </label>
+            </div>
             {/* 收款码 */}
+            {payConsented && (
             <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
               <p className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-200">扫码支付（选中一种方式，扫码清晰呈现）</p>
               <div className="flex flex-wrap items-start gap-4">
@@ -538,6 +583,7 @@ export default function AICredits() {
                 </div>
               </div>
             </div>
+            )}
             {/* 待确认订单 */}
             {pendingTopup > 0 && (
               <div className="mt-5">
@@ -724,6 +770,7 @@ export default function AICredits() {
       </>
       )}
     </div>
+    </ConsentGate>
   );
 }
 

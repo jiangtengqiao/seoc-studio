@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { supabase } from '../lib/supabase';
 import { FieldError } from '../components/ui';
+import { ConsentCheckbox } from '../components/ConsentGate';
 
 function validEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -100,9 +101,11 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [consented, setConsented] = useState(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (!consented) return setErr('请先勾选同意相关协议');
     if (!validEmail(email)) return setErr('请输入正确的邮箱地址');
     if (password.length < 6) return setErr('密码至少 6 位');
     setErr(null);
@@ -125,7 +128,21 @@ export function LoginPage() {
           <input id="pwd" className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
         </div>
         <FieldError msg={err} />
-        <button className="btn-primary w-full" disabled={busy}>{busy ? '登录中' : '登录'}</button>
+        <label className="flex items-start gap-2 text-xs leading-5 text-slate-500">
+          <input
+            type="checkbox"
+            checked={consented}
+            onChange={(e) => setConsented(e.target.checked)}
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
+          />
+          <span>
+            我已阅读并同意
+            <Link to="/legal/terms-of-service" className="text-brand-600 hover:underline" target="_blank">《用户服务协议》</Link>
+            与
+            <Link to="/legal/privacy-policy" className="text-brand-600 hover:underline" target="_blank">《隐私政策》</Link>
+          </span>
+        </label>
+        <button className="btn-primary w-full" disabled={busy || !consented}>{busy ? '登录中' : '登录'}</button>
       </form>
       <div className="mt-4 flex justify-between text-sm">
         <Link className="text-brand-600 hover:underline" to="/auth/reset">{t('auth.forgot')}</Link>
@@ -147,6 +164,7 @@ export function RegisterPage() {
   const [code, setCode] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [consented, setConsented] = useState(false);
   const cloud = mode === 'cloud';
 
   async function sendCode(): Promise<string | null> {
@@ -159,6 +177,7 @@ export function RegisterPage() {
     if (!validEmail(email)) return setErr('请输入正确的邮箱地址');
     if (password.length < 8) return setErr('密码至少 8 位');
     if (password !== confirm) return setErr('两次输入的密码不一致');
+    if (!consented) return setErr('请先勾选同意相关协议');
     setErr(null);
     if (!cloud) {
       setBusy(true);
@@ -216,8 +235,23 @@ export function RegisterPage() {
             <input id="pwd2" className="input" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
           </div>
           <FieldError msg={err} />
-          <button className="btn-primary w-full" disabled={busy}>{busy ? '处理中' : cloud ? t('auth.sendCode') : t('auth.register')}</button>
-          <p className="text-center text-xs text-slate-400">注册即表示同意《用户服务协议》与《隐私政策》</p>
+          <label className="flex items-start gap-2 text-xs leading-5 text-slate-500">
+            <input
+              type="checkbox"
+              checked={consented}
+              onChange={(e) => setConsented(e.target.checked)}
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
+            />
+            <span>
+              我已阅读并同意
+              <Link to="/legal/terms-of-service" className="text-brand-600 hover:underline" target="_blank">《用户服务协议》</Link>
+              、
+              <Link to="/legal/privacy-policy" className="text-brand-600 hover:underline" target="_blank">《隐私政策》</Link>
+              及
+              <Link to="/legal/ai-service-agreement" className="text-brand-600 hover:underline" target="_blank">《AI 服务协议》</Link>
+            </span>
+          </label>
+          <button className="btn-primary w-full" disabled={busy || !consented}>{busy ? '处理中' : cloud ? t('auth.sendCode') : t('auth.register')}</button>
         </form>
       ) : (
         <form onSubmit={stepTwo} className="space-y-4" noValidate style={{ animation: 'rise-in 0.4s ease both' }}>

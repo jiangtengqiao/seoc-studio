@@ -341,6 +341,11 @@ export default function Layout() {
       .catch(() => {});
   }, [location.pathname, profile]);
 
+  // 路由变化时滚动到顶部——不允许和前一页面的滚动进度同步
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollProgress />

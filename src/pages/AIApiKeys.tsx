@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { Reveal, BackButton } from '../components/fx';
+import { ConsentGate } from '../components/ConsentGate';
 import {
   listApiKeys,
   createApiKey,
@@ -70,6 +71,7 @@ export default function AIApiKeys() {
   const endpointUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://hjmgwlxohxinqhwxdspf.supabase.co'}/functions/v1/ai-api-proxy`;
 
   return (
+    <ConsentGate title="使用 API 前请确认协议">
     <div className="container-x py-8">
       <Reveal>
         <div className="mb-8 flex items-center gap-3">
@@ -277,5 +279,6 @@ print(response.choices[0].message.content)`}</code></pre>
         </div>
       </Reveal>
     </div>
+    </ConsentGate>
   );
 }
