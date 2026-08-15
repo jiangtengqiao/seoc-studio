@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { reportVisit, plantHoneypot, reportTrapHit } from './lib/security';
+import { reportVisit, plantHoneypot, reportTrapHit, installBehaviorMonitor } from './lib/security';
 import { AuthProvider } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
 import { I18nProvider } from './lib/i18n';
@@ -47,6 +47,7 @@ function VisitReporter() {
   }, [pathname]);
   // 页面就绪后埋蜜饬隐藏链接
   useEffect(() => {
+    installBehaviorMonitor();
     const t = setTimeout(() => plantHoneypot(), 800);
     return () => clearTimeout(t);
   }, []);

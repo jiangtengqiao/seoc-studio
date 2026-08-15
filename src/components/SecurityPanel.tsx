@@ -104,6 +104,12 @@ export default function SecurityPanel() {
                           <span className="block truncate text-slate-400" title={r.ua}>{shortUa(r.ua)}</span>
                           {r.is_bot && <span className="badge bg-violet-50 text-violet-600">爬虫</span>}
                           {r.suspicious && <span className="badge bg-red-50 text-red-600">异常</span>}
+                          {!!r.bot_score && r.bot_score >= 40 && (
+                            <span
+                              className="badge bg-fuchsia-50 text-fuchsia-700"
+                              title={r.bot_tags || ''}
+                            >指纹 {r.bot_score}{r.bot_tags ? `：${r.bot_tags}` : ''}</span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -156,6 +162,7 @@ export default function SecurityPanel() {
               <li>反爬：爬虫/攻击工具 UA（scrapy、sqlmap、nmap、zgrab 等）访问时，服务端直接返回 403 法律警告（著作权法、网络安全法、刑法二百八十五条），并全屏展示警示墙。</li>
               <li>频控：同 IP 每分钟超过 60 次自动标记可疑；每小时超过 1200 次（约 20 次/秒）自动封禁 2 小时。</li>
               <li>蜜饬陷阱：页面埋有对人类不可见的隐藏链接，爬虫提取链接访问即触发，自动拉黑 24 小时并返回法律警告。</li>
+              <li>无头浏览器指纹检测：针对 Playwright/Puppeteer/Selenium 等（UA 与真浏览器一致），采集 WebDriver 标记、CDP 注入对象、插件/语言缺失、SwiftShader 软件渲染、零尺寸窗口、行为事件缺失等 12 项信号综合评分；≥80 分永久拉黑，≥60 分封 12 小时，≥40 分标记可疑。</li>
               <li>浏览器完整性：缺少 Sec-Fetch/Accept-Language 等浏览器特征头的伪造 UA 脚本会被标记为可疑（应对伪装 UA 的绕过）。</li>
               <li>异常登录：设备指纹（UA+屏幕+时区哈希）变化时自动强制下线，要求重新登录验证，并给用户发送安全提醒通知。</li>
               <li>钓鱼/木马防护：仅官方域名为有效站点，凡与官网价格不一致的渠道均属假冒（见《举报与反假冒声明》）。</li>

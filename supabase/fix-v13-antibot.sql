@@ -90,7 +90,7 @@ begin
     v_suspicious := true;
   end if;
 
-  insert into public.visitor_logs (ip, user_agent, path, referer, user_id, suspicious, trap, browser_ok)
+  insert into public.visitor_logs (ip, ua, path, referer, user_id, suspicious, trap, browser_ok)
   values (p_ip, p_ua, p_path, p_referer, p_user, v_suspicious, p_trap, p_browser_ok);
 
   return jsonb_build_object(

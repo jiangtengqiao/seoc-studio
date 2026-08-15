@@ -18,7 +18,7 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ error: 'method' }), { status: 405, headers: cors });
   }
 
-  let payload: { path?: string; referer?: string; trap?: boolean } = {};
+  let payload: { path?: string; referer?: string; trap?: boolean; bot_score?: number; bot_tags?: string } = {};
   try {
     payload = await req.json();
   } catch {
@@ -34,6 +34,8 @@ Deno.serve(async (req: Request) => {
   const path = (payload.path || '/').slice(0, 500);
   const referer = (payload.referer || '').slice(0, 500);
   const trap = payload.trap === true;
+  const botScore = Math.max(0, Math.min(100, Math.floor(Number(payload.bot_score) || 0)));
+  const botTags = String(payload.bot_tags || '').slice(0, 300);
 
   const REST = (() => {
     const url = Deno.env.get('SUPABASE_URL')!;
@@ -132,20 +134,36 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // —— 5) 记录访问（含频控判定/自动封禁） ——
+  // —— 5) 服务端二次评分：无头浏览器即使伪造指纹，也常缺行为/头特征 ——
+  let finalScore = botScore;
+  if (!browserOk) finalScore += 15;              // 缺浏览器特征头（伪造 UA 脚本）
+  if (botScore > 0 && !trap) finalScore += 5;     // 带评分上报但无蜜饬，正常前端也带，仅微调
+  finalScore = Math.min(finalScore, 100);
+
+  // —— 6) 记录访问（含频控判定/自动封禁；SQL 内高分自动拉黑） ——
   let result: Record<string, unknown> = {};
   try {
     const data = await REST.rpc('log_visit', {
       p_ip: ip, p_ua: ua, p_path: path, p_referer: referer,
       p_user: userId, p_trap: false, p_browser_ok: browserOk,
+      p_bot_score: finalScore, p_bot_tags: botTags,
     });
     result = typeof data === 'object' && data ? data : {};
   } catch {
     // 日志失败不影响访客
   }
 
-  // 可疑（高频/无浏览器特征头）
-  if (result.suspicious || (result.minute_hits && Number(result.minute_hits) > 60) || !browserOk) {
+  // —— 7) 指纹评分极高：直接拦截（SQL 已同步拉黑） ——
+  if (finalScore >= 80) {
+    return legalWarning(
+      'BOT_SCORE',
+      '警告：检测到自动化访问工具',
+      '本站通过多重指纹检测确认您正在使用无头浏览器或自动化框架（如 Playwright、Puppeteer、Selenium 等）对本站进行抓取。依据《中华人民共和国网络安全法》第二十七条、《中华人民共和国刑法》第二百八十五条，未经授权爬取本站受版权保护的内容须承担法律责任，情节严重的可处三年以下有期徒刑或拘役。您的 IP 已被自动封禁并完整记录证据。确有正当研究需要的，请通过 jiangtengqiao@qq.com 书面申请授权。'
+    );
+  }
+
+  // 可疑（高频/无浏览器特征头/中高指纹评分）
+  if (result.suspicious || (result.minute_hits && Number(result.minute_hits) > 60) || !browserOk || finalScore >= 40) {
     return new Response(
       JSON.stringify({
         blocked: false,

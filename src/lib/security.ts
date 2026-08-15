@@ -13,6 +13,112 @@ const WARN_KEY = 'seoc.botWarned';
 /** 本次会话是否已上报过该路径 */
 const reported = new Set<string>();
 
+/* ================= 无头浏览器/自动化框架指纹检测 ================= */
+
+export interface BotSignals {
+  score: number;          // 0-100，越高越像自动化
+  hits: string[];         // 命中的检测项
+  human: number;          // 行为事件计数（鼠标/滚动/键盘）
+}
+
+/** 行为事件计数（真人访问会持续产生） */
+const humanEvents = { count: 0 };
+let behaviorInstalled = false;
+
+export function installBehaviorMonitor(): void {
+  if (behaviorInstalled) return;
+  behaviorInstalled = true;
+  const bump = () => { humanEvents.count = Math.min(humanEvents.count + 1, 9999); };
+  try {
+    window.addEventListener('mousemove', bump, { passive: true, capture: true });
+    window.addEventListener('wheel', bump, { passive: true, capture: true });
+    window.addEventListener('touchstart', bump, { passive: true, capture: true });
+    window.addEventListener('keydown', bump, { capture: true });
+    window.addEventListener('pointerdown', bump, { passive: true, capture: true });
+  } catch { /* ignore */ }
+}
+
+/**
+ * 采集自动化框架特征信号（Playwright/Puppeteer/Selenium 及常见 CDP 驱动）。
+ * 每项命中加分，总分≥阈值判定为自动化访问。
+ * 注：仅在浏览器环境调用。
+ */
+export function collectBotSignals(): BotSignals {
+  const hits: string[] = [];
+  let score = 0;
+  const add = (pts: number, tag: string) => { score += pts; hits.push(tag); };
+
+  try {
+    const n = navigator as Navigator & Record<string, unknown>;
+
+    // 1) WebDriver 标记（Selenium/旧版 Puppeteer/Playwright 未 stealth 时必中）
+    if (n.webdriver === true) add(45, 'webdriver');
+
+    // 2) CDP 自动化注入的属性
+    if ('cdc_adoQpoasnfa76pfcZLmcfl_Array' in window || 'cdc_adoQpoasnfa76pfcZLmcfl_Promise' in window) add(40, 'cdc-chromedriver');
+    const w = window as unknown as Record<string, unknown>;
+    if (w.__nightmare || w.__phantomas) add(35, 'legacy-driver');
+
+    // 3) Playwright 特征：window.playwright / __playwright 对象
+    if ('playwright' in window && !(window as unknown as { playwright?: { pw?: boolean } }).playwright?.pw) {
+      // 官方浏览器不会注入裸 playwright 对象，Playwright 未 stealth 时会
+      if (typeof w.playwright === 'object') add(35, 'playwright-object');
+    }
+
+    // 4) 插件/语言异常：无头浏览器默认空 plugins、单语言、无 mimeTypes
+    const plugins = n.plugins?.length ?? 0;
+    if (plugins === 0) add(15, 'no-plugins');
+    const langs = n.languages?.length ?? 0;
+    if (langs === 0) add(10, 'no-languages');
+
+    // 5) 权限与通知状态不一致：真浏览器 Notification 不是 denied-时-headless 常见 denied
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'denied' && plugins === 0) add(10, 'headless-notification');
+    } catch { /* ignore */ }
+
+    // 6) WebGL 渲染器暴露 SwiftShader（无头软件渲染）
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') as WebGLRenderingContext | null;
+      if (gl) {
+        const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+        const renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+        if (/swiftshader|llvmpipe|software/i.test(renderer)) add(25, 'software-renderer');
+      } else {
+        add(15, 'no-webgl');
+      }
+    } catch { /* ignore */ }
+
+    // 7) 屏幕尺寸异常：无头默认 0 或极小
+    if (screen.width === 0 || screen.height === 0) add(30, 'zero-screen');
+    else if (screen.width < 200 || screen.height < 200) add(20, 'tiny-screen');
+
+    // 8) outerWidth/Height = 0（无头无窗口）
+    if (window.outerWidth === 0 || window.outerHeight === 0) add(25, 'no-window');
+
+    // 9) 时区/地区矛盾： timezone 为空
+    try {
+      if (!Intl.DateTimeFormat().resolvedOptions().timeZone) add(15, 'no-timezone');
+    } catch { add(15, 'no-timezone'); }
+
+    // 10) 鼠标从未移动且无任何指针事件（纯脚本注入页面不交互）
+    if (humanEvents.count === 0) add(10, 'no-human-input');
+
+    // 11) 性能计时异常：硬课真浏览器页面加载有完整时序，瞬时渲染可疑
+    try {
+      const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+      if (nav && nav.duration > 0 && nav.duration < 50) add(15, 'instant-load');
+    } catch { /* ignore */ }
+
+    // 12) Chrome 检查：真 Chrome 有 window.chrome 与 runtime
+    if (/chrome/i.test(n.userAgent) && !w.chrome) add(20, 'fake-chrome');
+  } catch {
+    // 采集失败不阻断
+  }
+
+  return { score: Math.min(score, 100), hits, human: humanEvents.count };
+}
+
 /**
  * 蜜饬陷阱：向页面注入对正常用户不可见的隐藏链接（display:none + tabindex=-1 + aria-hidden），
  * 真人永远点不到；爬虫会提取页面上全部链接并访问，一访问即触发 trap 上报→自动封禁 24h。
@@ -64,17 +170,25 @@ export async function reportVisit(path: string): Promise<void> {
     if (session.data.session?.access_token) {
       headers.Authorization = `Bearer ${session.data.session.access_token}`;
     }
+    const signals = collectBotSignals();
     const r = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/visitor-log`,
       {
         method: 'POST',
         headers,
-        body: JSON.stringify({ path, referer: document.referrer || '' }),
+        body: JSON.stringify({
+          path,
+          referer: document.referrer || '',
+          bot_score: signals.score,
+          bot_tags: signals.hits.join(','),
+        }),
       }
     );
     if (r.status === 403) {
-      const data = await r.json();
-      if (data.code === 'ANTI_CRAWLER') showAntiCrawlerWall(data);
+      const data = await r.json().catch(() => null);
+      if (data && (data.code === 'ANTI_CRAWLER' || data.code === 'BOT_SCORE' || data.code === 'IP_BANNED')) {
+        showAntiCrawlerWall(data);
+      }
     }
   } catch {
     // 上报失败静默
@@ -184,8 +298,9 @@ export interface VisitorStats {
   unique_ip: number;
   bot_hits: number;
   suspicious_hits: number;
-  top_ips: { ip: string; hits: number; is_bot: boolean; suspicious: boolean }[];
-  recent: { ip: string; ua: string; path: string; is_bot: boolean; suspicious: boolean; created_at: string }[];
+  automation_hits?: number;
+  top_ips: { ip: string; hits: number; is_bot: boolean; suspicious: boolean; bot_score?: number }[];
+  recent: { ip: string; ua: string; path: string; is_bot: boolean; suspicious: boolean; bot_score?: number; bot_tags?: string; created_at: string }[];
 }
 
 export async function getVisitorStats(hours = 24): Promise<VisitorStats | null> {
