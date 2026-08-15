@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { reportVisit } from './lib/security';
+import { reportVisit, plantHoneypot, reportTrapHit } from './lib/security';
 import { AuthProvider } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
 import { I18nProvider } from './lib/i18n';
@@ -37,9 +37,32 @@ function NotFound() {
 function VisitReporter() {
   const { pathname } = useLocation();
   useEffect(() => {
+    // 蜜饬陷阱：路径命中即上报（爬虫/扫描器才会进入这种路径）
+    if (pathname.toLowerCase().includes('antibot-trap')) {
+      reportTrapHit();
+      showWallStandalone();
+      return;
+    }
     reportVisit(pathname);
   }, [pathname]);
+  // 页面就绪后埋蜜饬隐藏链接
+  useEffect(() => {
+    const t = setTimeout(() => plantHoneypot(), 800);
+    return () => clearTimeout(t);
+  }, []);
   return null;
+}
+
+/** 蜜饬命中后的全屏法律警告（不复用会话级拦截，确保每次都展示） */
+function showWallStandalone(): void {
+  if (document.getElementById('seoc-trap-wall')) return;
+  const div = document.createElement('div');
+  div.id = 'seoc-trap-wall';
+  div.style.cssText =
+    'position:fixed;inset:0;z-index:99999;background:rgba(127,29,29,.97);color:#fff;display:flex;align-items:center;justify-content:center;padding:2rem;';
+  div.innerHTML =
+    '<div style="max-width:640px;text-align:center"><h2 style="font-size:1.5rem;font-weight:700;margin-bottom:1rem">警告：恶意爬取属违法行为</h2><p style="line-height:1.8;font-size:.95rem;opacity:.92">您已触发本站反爬防护机制。依据《中华人民共和国网络安全法》第二十七条、《中华人民共和国刑法》第二百八十五条，非法获取计算机信息系统数据可处三年以下有期徒刑或拘役；情节特别严重的处三年以上七年以下有期徒刑。您的 IP 已被自动封禁并完整记录证据，本站保留追究法律责任的权利。确有正当研究需要的，请通过 jiangtengqiao@qq.com 书面申请授权。</p></div>';
+  document.body.appendChild(div);
 }
 
 export default function App() {

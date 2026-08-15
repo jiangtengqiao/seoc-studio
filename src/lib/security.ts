@@ -7,11 +7,47 @@ import { supabase, isCloudEnabled } from './supabase';
  * 3. 异常登录检测：设备指纹（UA + 屏幕 + 时区哈希）变化时强制下线重新验证
  */
 
-const BOT_RE = /(scrapy|python-requests|python-urllib|curl|wget|httpclient|go-http-client|java\/|okhttp|libwww|aiohttp|node-fetch|axios\/|zgrab|masscan|nmap|sqlmap|nikto|dirbuster|gobuster|acunetix|nessus|hydra|metasploit|headlesschrome)/i;
+const BOT_RE = /(scrapy|python-requests|python-urllib|curl|wget|httpclient|go-http-client|java\/|okhttp|libwww|aiohttp|node-fetch|axios\/|zgrab|masscan|nmap|sqlmap|nikto|dirbuster|gobuster|acunetix|nessus|hydra|metasploit|headlesschrome|phantomjs|puppeteer|playwright|selenium)/i;
 const WARN_KEY = 'seoc.botWarned';
 
 /** 本次会话是否已上报过该路径 */
 const reported = new Set<string>();
+
+/**
+ * 蜜饬陷阱：向页面注入对正常用户不可见的隐藏链接（display:none + tabindex=-1 + aria-hidden），
+ * 真人永远点不到；爬虫会提取页面上全部链接并访问，一访问即触发 trap 上报→自动封禁 24h。
+ */
+export function plantHoneypot(): void {
+  if (document.getElementById('seoc-hp')) return;
+  const a = document.createElement('a');
+  a.id = 'seoc-hp';
+  a.href = '/.well-known/antibot-trap';
+  a.textContent = 'antibot';
+  a.setAttribute('aria-hidden', 'true');
+  a.setAttribute('tabindex', '-1');
+  // 内联样式确保不可见：视觉、指针、布局三重隔离
+  a.style.cssText = 'display:none!important;position:absolute;left:-9999px;width:0;height:0;overflow:hidden;pointer-events:none;';
+  document.body.appendChild(a);
+}
+
+/** 上报蜜饬命中（点击/请求了蜜饬路径时调用） */
+export async function reportTrapHit(): Promise<void> {
+  if (!isCloudEnabled || !supabase) return;
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const session = await supabase.auth.getSession();
+    if (session.data.session?.access_token) {
+      headers.Authorization = `Bearer ${session.data.session.access_token}`;
+    }
+    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/visitor-log`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ path: '/.well-known/antibot-trap', trap: true }),
+    });
+  } catch {
+    // 静默
+  }
+}
 
 export async function reportVisit(path: string): Promise<void> {
   if (BOT_RE.test(navigator.userAgent)) {
@@ -157,4 +193,27 @@ export async function getVisitorStats(hours = 24): Promise<VisitorStats | null> 
   const { data, error } = await supabase.rpc('get_visitor_stats', { p_hours: hours });
   if (error) return null;
   return data as VisitorStats;
+}
+
+/* ---------------- 管理端：封禁库 ---------------- */
+
+export interface BannedIp {
+  ip: string;
+  reason: string;
+  hits: number;
+  blocked_until: string | null;
+  created_at: string;
+}
+
+export async function listBannedIps(): Promise<BannedIp[]> {
+  if (!(isCloudEnabled && supabase)) return [];
+  const { data, error } = await supabase.rpc('list_banned_ips');
+  if (error) return [];
+  return (data || []) as BannedIp[];
+}
+
+export async function unbanIp(ip: string): Promise<boolean> {
+  if (!(isCloudEnabled && supabase)) return false;
+  const { error } = await supabase.rpc('unban_ip', { p_ip: ip });
+  return !error;
 }

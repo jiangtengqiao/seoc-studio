@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getVisitorStats, type VisitorStats } from '../lib/security';
+import { getVisitorStats, listBannedIps, unbanIp, type VisitorStats, type BannedIp } from '../lib/security';
 import { Spinner } from './ui';
 
 /** 管理端：访问者与安全监控面板 */
@@ -8,6 +8,10 @@ export default function SecurityPanel() {
   const [stats, setStats] = useState<VisitorStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [banned, setBanned] = useState<BannedIp[]>([]);
+  const [unbanBusy, setUnbanBusy] = useState('');
+
+  const loadBanned = async () => setBanned(await listBannedIps());
 
   const load = async (h: number) => {
     setLoading(true);
@@ -18,7 +22,7 @@ export default function SecurityPanel() {
     setLoading(false);
   };
 
-  useEffect(() => { load(hours); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { load(hours); loadBanned(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const fmtTime = (iso: string) =>
     new Date(iso).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -109,11 +113,50 @@ export default function SecurityPanel() {
             </div>
           </div>
 
+          <div className="card mt-5 overflow-hidden">
+            <p className="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-800">IP 封禁库（蜜饬自动拉黑 / 洪水攻击自动封禁，可手动解封）</p>
+            {banned.length === 0 ? (
+              <p className="px-4 py-6 text-sm text-slate-400">当前无封禁记录</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500">
+                    <tr><th className="px-3 py-2">IP</th><th className="px-3 py-2">原因</th><th className="px-3 py-2">拦截次数</th><th className="px-3 py-2">封禁至</th><th className="px-3 py-2">操作</th></tr>
+                  </thead>
+                  <tbody>
+                    {banned.map((b) => (
+                      <tr key={b.ip} className="border-t border-slate-50 bg-red-50/30">
+                        <td className="px-3 py-2 font-mono">{b.ip}</td>
+                        <td className="px-3 py-2">{b.reason === 'honeypot' ? '蜜饬陷阱触发（自动拉黑 24h）' : b.reason === 'flood' ? '洪水攻击（自动封 2h）' : b.reason}</td>
+                        <td className="px-3 py-2">{b.hits}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-slate-500">{b.blocked_until ? fmtTime(b.blocked_until) : '永久'}</td>
+                        <td className="px-3 py-2">
+                          <button
+                            className="badge cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-50"
+                            disabled={unbanBusy === b.ip}
+                            onClick={async () => {
+                              setUnbanBusy(b.ip);
+                              const ok = await unbanIp(b.ip);
+                              if (ok) await loadBanned();
+                              setUnbanBusy('');
+                            }}
+                          >{unbanBusy === b.ip ? '解封中…' : '解封'}</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           <div className="card mt-5 p-5 text-xs leading-6 text-slate-500">
             <p className="mb-2 text-sm font-semibold text-slate-800">防护机制说明</p>
             <ul className="list-disc space-y-1 pl-4">
               <li>反爬：爬虫/攻击工具 UA（scrapy、sqlmap、nmap、zgrab 等）访问时，服务端直接返回 403 法律警告（著作权法、网络安全法、刑法二百八十五条），并全屏展示警示墙。</li>
-              <li>频控：同 IP 每分钟超过 60 次请求自动标记为疑似攻击/注水，日志高亮显示。</li>
+              <li>频控：同 IP 每分钟超过 60 次自动标记可疑；每小时超过 1200 次（约 20 次/秒）自动封禁 2 小时。</li>
+              <li>蜜饬陷阱：页面埋有对人类不可见的隐藏链接，爬虫提取链接访问即触发，自动拉黑 24 小时并返回法律警告。</li>
+              <li>浏览器完整性：缺少 Sec-Fetch/Accept-Language 等浏览器特征头的伪造 UA 脚本会被标记为可疑（应对伪装 UA 的绕过）。</li>
               <li>异常登录：设备指纹（UA+屏幕+时区哈希）变化时自动强制下线，要求重新登录验证，并给用户发送安全提醒通知。</li>
               <li>钓鱼/木马防护：仅官方域名为有效站点，凡与官网价格不一致的渠道均属假冒（见《举报与反假冒声明》）。</li>
             </ul>
