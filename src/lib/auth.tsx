@@ -10,6 +10,7 @@ import {
   supabase
 } from './supabase';
 import type { Profile } from './types';
+import { verifySessionFingerprint } from './security';
 
 interface AuthState {
   profile: Profile | null;
@@ -77,7 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (async () => {
       if (isCloudEnabled) {
         await loadCloud();
-        supabase?.auth.onAuthStateChange(() => loadCloud());
+        supabase?.auth.onAuthStateChange(async (event) => {
+          if (event === 'SIGNED_IN') {
+            // 异常登录检测：设备指纹变化时强制下线重新验证
+            await verifySessionFingerprint(() => { window.location.href = import.meta.env.BASE_URL + 'auth/login?sec=1'; });
+          }
+          loadCloud();
+        });
       } else {
         const s = localSession();
         setProfile(s ? localProfile(s.userId) : null);

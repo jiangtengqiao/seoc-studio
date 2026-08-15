@@ -16,6 +16,10 @@ import {
   listConversationMessages,
   saveConversation,
   saveConversationMessage,
+  deleteConversation,
+  deleteAllConversations,
+  deleteMessagesRange,
+  deleteMessagesByIds,
   TIER_ORDER,
   TIER_INFO,
   type AIModel,
@@ -32,6 +36,8 @@ interface Message {
   interruptReason?: string;
   cost?: number;
   isFree?: boolean;
+  dbId?: string;
+  createdAt?: string;
 }
 
 export default function AIChat() {
@@ -63,6 +69,88 @@ export default function AIChat() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  // —— 消息/会话删除（研点不退） ——
+  const [manageMode, setManageMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set<string>());
+  const [rangeFrom, setRangeFrom] = useState<string>('');
+  const [rangeTo, setRangeTo] = useState<string>('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteMsg, setDeleteMsg] = useState('');
+
+  const refreshConversations = async () => {
+    try {
+      const convs = await listConversations();
+      setConversations(convs);
+    } catch { /* 忽略 */ }
+  };
+
+  const msgKey = (m: Message, i: number) => m.dbId || `idx-${i}`;
+
+  const toggleSelect = (key: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const doDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`确定删除选中的 ${selectedIds.size} 条消息吗？删除后不可恢复，已消耗的研点不予退还。`)) return;
+    setDeleteBusy(true);
+    try {
+      const ids = messages.filter((m, i) => selectedIds.has(msgKey(m, i)) && m.dbId).map((m) => m.dbId!);
+      if (ids.length > 0) {
+        const n = await deleteMessagesByIds(ids);
+        setDeleteMsg(`已删除 ${n} 条消息（研点不退）`);
+      }
+      setMessages((prev) => prev.filter((m, i) => !selectedIds.has(msgKey(m, i))));
+      setSelectedIds(new Set());
+    } catch (e) {
+      setDeleteMsg('删除失败：' + (e as Error).message);
+    }
+    setDeleteBusy(false);
+    setTimeout(() => setDeleteMsg(''), 4000);
+  };
+
+  const doDeleteRange = async () => {
+    if (!currentConversationId || !rangeFrom || !rangeTo) return;
+    const from = new Date(rangeFrom).toISOString();
+    const to = new Date(new Date(rangeTo).getTime() + 86399999).toISOString();
+    if (!window.confirm('确定删除该时间范围内的全部消息吗？删除后不可恢复，已消耗的研点不予退还。')) return;
+    setDeleteBusy(true);
+    try {
+      const n = await deleteMessagesRange(currentConversationId, from, to);
+      setMessages((prev) => prev.filter((m) => !m.createdAt || m.createdAt < from || m.createdAt > to));
+      setDeleteMsg(`已删除 ${n} 条消息（研点不退）`);
+    } catch (e) {
+      setDeleteMsg('删除失败：' + (e as Error).message);
+    }
+    setDeleteBusy(false);
+    setRangeFrom(''); setRangeTo('');
+    setTimeout(() => setDeleteMsg(''), 4000);
+  };
+
+  const doDeleteConversation = async (id: string) => {
+    if (!window.confirm('确定删除该会话及其全部消息吗？删除后不可恢复，已消耗的研点不予退还。')) return;
+    try {
+      await deleteConversation(id);
+      const convs = await listConversations();
+      setConversations(convs);
+      if (id === currentConversationId) {
+        setMessages([]);
+        setCurrentConversationId(null);
+      }
+    } catch { /* 忽略 */ }
+  };
+
+  const doDeleteAll = async () => {
+    if (!window.confirm('确定清空全部会话与消息吗？删除后不可恢复，已消耗的研点不予退还。')) return;
+    try {
+      await deleteAllConversations();
+      setConversations([]); setMessages([]); setCurrentConversationId(null);
+    } catch { /* 忽略 */ }
+  };
   const [stickToBottom, setStickToBottom] = useState(true);
 
   // 会员等级信息
@@ -108,6 +196,8 @@ export default function AIChat() {
               interrupted: mm.interrupted,
               cost: mm.cost,
               isFree: mm.is_free,
+              dbId: mm.id,
+              createdAt: mm.created_at,
             }))
           );
         }
@@ -215,6 +305,8 @@ export default function AIChat() {
           interrupted: mm.interrupted,
           cost: mm.cost,
           isFree: mm.is_free,
+          dbId: mm.id,
+          createdAt: mm.created_at,
         }))
       );
       const conv = conversations.find((c) => c.id === id);
@@ -497,13 +589,23 @@ export default function AIChat() {
         } shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 lg:relative lg:z-auto lg:flex lg:w-64`}
       >
         <div className="border-b border-slate-100 p-3 dark:border-slate-700">
-          <button
-            onClick={newChat}
-            disabled={streaming}
-            className="btn-primary w-full justify-center py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            + {t('ai.chat.newChat')}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={newChat}
+              disabled={streaming}
+              className="btn-primary flex-1 justify-center py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              + {t('ai.chat.newChat')}
+            </button>
+            <button
+              onClick={doDeleteAll}
+              disabled={streaming || conversations.length === 0}
+              title="清空全部会话（研点不退）"
+              className="rounded-lg border border-red-200 px-2.5 text-xs text-red-500 transition hover:bg-red-50 disabled:opacity-40 dark:border-red-900/50 dark:hover:bg-red-950/30"
+            >
+              清空
+            </button>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto ai-chat-scroll p-2">
           <p className="px-2 pb-2 pt-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
@@ -515,8 +617,8 @@ export default function AIChat() {
             <p className="px-2 text-xs text-slate-400">暂无历史会话</p>
           ) : (
             conversations.map((c) => (
+              <div key={c.id} className="group relative">
               <button
-                key={c.id}
                 onClick={() => switchConversation(c.id)}
                 disabled={streaming}
                 className={`mb-1 block w-full truncate rounded-lg px-3 py-2 text-left text-sm transition disabled:opacity-60 ${
@@ -531,6 +633,15 @@ export default function AIChat() {
                   {new Date(c.updated_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </span>
               </button>
+              <button
+                onClick={() => doDeleteConversation(c.id)}
+                disabled={streaming}
+                title="删除该会话（研点不退）"
+                className="absolute right-1 top-1.5 hidden rounded-md p-1 text-slate-300 transition hover:bg-red-50 hover:text-red-500 group-hover:block dark:hover:bg-red-950/40"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+              </button>
+              </div>
             ))
           )}
         </div>
@@ -716,8 +827,24 @@ export default function AIChat() {
             </div>
           )}
 
-          {messages.map((msg, i) => (
-            <div key={i} className={`mb-5 flex w-full items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+          {messages.map((msg, i) => {
+            const key = msgKey(msg, i);
+            const selected = selectedIds.has(key);
+            return (
+            <div key={key} className={`mb-5 flex w-full items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''} ${selected ? 'opacity-90' : ''}`}>
+              {manageMode && (
+                <button
+                  onClick={() => toggleSelect(key)}
+                  className={`mt-6 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
+                    selected ? 'border-red-500 bg-red-500 text-white' : 'border-slate-300 hover:border-red-400'
+                  }`}
+                  aria-label="选择该消息"
+                >
+                  {selected && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><path d="M5 13l4 4L19 7" /></svg>
+                  )}
+                </button>
+              )}
               {/* 头像（固定在行首） */}
               <div className="shrink-0">
                 {msg.role === 'assistant' ? (
@@ -764,7 +891,8 @@ export default function AIChat() {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {/* 实时消耗条 */}
           {streaming && estimatedCost > 0 && (
@@ -781,6 +909,57 @@ export default function AIChat() {
           <div ref={chatEndRef} />
         </div>
       </div>
+
+      {/* 消息管理工具条 */}
+      {historyLoaded && messages.length > 0 && !streaming && (
+        <div className="border-t border-slate-100 bg-slate-50/80 dark:bg-slate-800/60">
+          <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-2 px-4 py-2 text-xs">
+            <button
+              onClick={() => { setManageMode(!manageMode); setSelectedIds(new Set()); }}
+              className={`rounded-lg border px-2.5 py-1 font-medium transition ${
+                manageMode ? 'border-red-400 bg-red-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-red-300 dark:border-slate-600 dark:bg-slate-800'
+              }`}
+            >
+              {manageMode ? '退出选择' : '消息管理'}
+            </button>
+            {manageMode && (
+              <>
+                <button
+                  onClick={() => setSelectedIds(new Set(messages.map((m, i) => msgKey(m, i))))}
+                  className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-slate-600 transition hover:border-brand-400 dark:border-slate-600 dark:bg-slate-800"
+                >
+                  全选本对话
+                </button>
+                <button
+                  onClick={doDeleteSelected}
+                  disabled={selectedIds.size === 0 || deleteBusy}
+                  className="rounded-lg bg-red-500 px-3 py-1 font-medium text-white transition hover:bg-red-600 disabled:opacity-40"
+                >
+                  删除所选（{selectedIds.size}）
+                </button>
+              </>
+            )}
+            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <span className="text-slate-500 dark:text-slate-400">按时间范围删除：</span>
+            <input type="date" value={rangeFrom} onChange={(e) => setRangeFrom(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800" />
+            <span className="text-slate-400">至</span>
+            <input type="date" value={rangeTo} onChange={(e) => setRangeTo(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800" />
+            <button
+              onClick={doDeleteRange}
+              disabled={!currentConversationId || !rangeFrom || !rangeTo || deleteBusy}
+              className="rounded-lg bg-red-500/90 px-2.5 py-1 font-medium text-white transition hover:bg-red-600 disabled:opacity-40"
+            >
+              删除范围
+            </button>
+            <span className="ml-auto text-slate-400 dark:text-slate-500">删除不退还研点</span>
+          </div>
+          {deleteMsg && (
+            <p className="mx-auto w-full max-w-3xl px-4 pb-2 text-xs font-medium text-red-500">{deleteMsg}</p>
+          )}
+        </div>
+      )}
 
       {/* 输入区 */}
       <div className="border-t border-slate-200 bg-white">

@@ -468,33 +468,47 @@ body {
   .code-caret { animation: none; }
 }
 
-/* ===== 支付码选中动效 ===== */
-/* 选中揭晓：从模糊锁定态过渡到清晰可扫 */
+/* ===== 支付码选中动效（流畅度优化：合成层动画 + 分离 filter，避免整帧重绘） ===== */
+/* 选中揭晓：scale/opacity 走合成层，blur 仅短促过渡，前 40% 完成去模糊 */
 @keyframes pay-reveal {
-  0% { filter: blur(6px) grayscale(40%); transform: scale(1.06); opacity: 0.7; }
-  100% { filter: blur(0) grayscale(0); transform: scale(1); opacity: 1; }
+  0% { transform: scale(1.05); opacity: 0.55; filter: blur(5px); }
+  45% { filter: blur(0); }
+  100% { transform: scale(1); opacity: 1; filter: blur(0); }
 }
-.pay-reveal { animation: pay-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
-/* 锁定罩落下 */
+.pay-reveal {
+  animation: pay-reveal 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+}
+/* 锁定罩落下：纯合成层（opacity + translate3d） */
 @keyframes pay-cover {
-  0% { opacity: 0; transform: translateY(-6%); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: translate3d(0, -5%, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
 }
-.pay-cover-in { animation: pay-cover 0.35s ease-out both; }
-/* 选中勾弹入 */
+.pay-cover-in {
+  animation: pay-cover 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+/* 选中勾弹入：回弹更干脆 */
 @keyframes check-pop {
   0% { transform: scale(0); }
-  60% { transform: scale(1.25); }
+  55% { transform: scale(1.22); }
   100% { transform: scale(1); }
 }
-.check-pop { animation: check-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-/* 选中卡片整体浮起 */
+.check-pop {
+  animation: check-pop 0.26s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform;
+}
+/* 选中卡片整体浮起：GPU 加速过渡 */
 .pay-card {
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  will-change: transform;
 }
 .pay-card-selected {
-  transform: translateY(-2px) scale(1.02);
+  transform: translate3d(0, -2px, 0) scale(1.02);
 }
+/* 动画结束后回收合成层，避免长期占用显存 */
+.pay-reveal.is-done, .pay-cover-in.is-done, .check-pop.is-done, .pay-card.is-idle { will-change: auto; }
 @media (prefers-reduced-motion: reduce) {
   .pay-reveal, .pay-cover-in, .check-pop { animation: none; }
 }

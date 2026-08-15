@@ -5,11 +5,12 @@ import { getProduct, minimumWords, PRODUCTS, purchaseTitle } from '../data/produ
 import { PageHeader, Spinner } from '../components/ui';
 import { fetchAllInquiries, replyInquiry, type Inquiry } from '../lib/inquiries';
 import SurveyAdmin from '../components/SurveyAdmin';
+import SecurityPanel from '../components/SecurityPanel';
 import AIAdminPanel from '../components/AIAdminPanel';
 
 export default function Admin() {
   const { profile, loading } = useAuth();
-  const [tab, setTab] = useState<'issue' | 'announcement' | 'purchase' | 'inquiry' | 'survey' | 'ai'>('issue');
+  const [tab, setTab] = useState<'issue' | 'announcement' | 'purchase' | 'inquiry' | 'survey' | 'ai' | 'security'>('issue');
   const [msg, setMsg] = useState<string | null>(null);
 
   const [slug, setSlug] = useState(PRODUCTS[0].slug);
@@ -105,7 +106,7 @@ export default function Admin() {
   return (
     <div>
       <PageHeader title="管理端" sub="内容发布、公告维护与选购确认。" />
-      <div className={tab === 'survey' ? 'container-x max-w-6xl py-10' : 'container-x max-w-4xl py-10'}>
+      <div className={tab === 'survey' || tab === 'security' ? 'container-x max-w-6xl py-10' : 'container-x max-w-4xl py-10'}>
         <div className="mb-6 flex gap-2">
           {([
             ['issue', '发布期刊'],
@@ -113,6 +114,7 @@ export default function Admin() {
             ['purchase', '选购确认'],
             ['inquiry', '咨询与选购申请'],
             ['survey', '问卷中心'],
+            ['security', '访问与安全'],
             ['ai', 'AI 平台管理']
           ] as const).map(([k, label]) => (
             <button
@@ -228,6 +230,7 @@ export default function Admin() {
         )}
 
         {tab === 'survey' && <SurveyAdmin />}
+        {tab === 'security' && <SecurityPanel />}
 
         {tab === 'ai' && <AIAdminPanel />}
 

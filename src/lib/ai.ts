@@ -996,6 +996,79 @@ export async function saveConversationMessage(
 }
 
 // ============================================================
+// 会话/消息删除（研点不退）
+// ============================================================
+
+/** 删除单个会话及其全部消息（仅本人，研点不退） */
+export async function deleteConversation(conversationId: string): Promise<void> {
+  if (!isCloudEnabled || !supabase) {
+    localStorage.removeItem(`seoc.local.ai_messages_${conversationId}`);
+    const list = JSON.parse(localStorage.getItem('seoc.local.ai_conversations') || '[]') as AIConversation[];
+    localStorage.setItem('seoc.local.ai_conversations', JSON.stringify(list.filter((c) => c.id !== conversationId)));
+    return;
+  }
+  const { error } = await supabase.rpc('delete_ai_conversation', { p_id: conversationId });
+  if (error) throw error;
+}
+
+/** 清空全部会话（仅本人，研点不退） */
+export async function deleteAllConversations(): Promise<void> {
+  if (!isCloudEnabled || !supabase) {
+    const list = JSON.parse(localStorage.getItem('seoc.local.ai_conversations') || '[]') as AIConversation[];
+    for (const c of list) localStorage.removeItem(`seoc.local.ai_messages_${c.id}`);
+    localStorage.removeItem('seoc.local.ai_conversations');
+    return;
+  }
+  const { error } = await supabase.rpc('delete_ai_conversations_all');
+  if (error) throw error;
+}
+
+/** 按时间范围删除某会话消息（含端点，研点不退），返回删除条数 */
+export async function deleteMessagesRange(
+  conversationId: string,
+  from: string,
+  to: string
+): Promise<number> {
+  if (!isCloudEnabled || !supabase) {
+    const key = `seoc.local.ai_messages_${conversationId}`;
+    const list = JSON.parse(localStorage.getItem(key) || '[]') as AIConversationMessage[];
+    const kept = list.filter((m) => m.created_at < from || m.created_at > to);
+    localStorage.setItem(key, JSON.stringify(kept));
+    return list.length - kept.length;
+  }
+  const { data, error } = await supabase.rpc('delete_ai_messages_range', {
+    p_conversation: conversationId,
+    p_from: from,
+    p_to: to,
+  });
+  if (error) throw error;
+  return Number(data || 0);
+}
+
+/** 按 ID 精确删除若干条消息（研点不退），返回删除条数 */
+export async function deleteMessagesByIds(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  if (!isCloudEnabled || !supabase) {
+    // 本地模式下按会话分组处理
+    let removed = 0;
+    const convIds = new Set(
+      (JSON.parse(localStorage.getItem('seoc.local.ai_conversations') || '[]') as AIConversation[]).map((c) => c.id)
+    );
+    for (const cid of convIds) {
+      const key = `seoc.local.ai_messages_${cid}`;
+      const list = JSON.parse(localStorage.getItem(key) || '[]') as AIConversationMessage[];
+      const kept = list.filter((m) => !ids.includes(m.id));
+      removed += list.length - kept.length;
+      localStorage.setItem(key, JSON.stringify(kept));
+    }
+    return removed;
+  }
+  const { data, error } = await supabase.rpc('delete_ai_messages_ids', { p_ids: ids });
+  if (error) throw error;
+  return Number(data || 0);
+}
+
+// ============================================================
 // 全站统计（仅管理员可用的 RPC）
 // ============================================================
 

@@ -1,4 +1,6 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { reportVisit } from './lib/security';
 import { AuthProvider } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
 import { I18nProvider } from './lib/i18n';
@@ -32,12 +34,21 @@ function NotFound() {
   );
 }
 
+function VisitReporter() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    reportVisit(pathname);
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
     <ThemeProvider>
       <I18nProvider>
         <AuthProvider>
           <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <VisitReporter />
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Home />} />
