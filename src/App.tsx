@@ -6,6 +6,7 @@ import { ThemeProvider } from './lib/theme';
 import { I18nProvider } from './lib/i18n';
 import Layout from './components/Layout';
 import Home from './pages/Home';
+import LandingPage from './landing/LandingPage';
 import { AnnouncementsPage, CategoryPage, ProductsIndex } from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
 import Reader from './pages/Reader';
@@ -74,8 +75,10 @@ export default function App() {
           <BrowserRouter basename={import.meta.env.BASE_URL}>
         <VisitReporter />
         <Routes>
+          {/* 品牌落地页：独立全屏，不套用 Layout（自带液态导航与页脚） */}
+          <Route path="/" element={<LandingPage />} />
           <Route element={<Layout />}>
-            <Route index element={<Home />} />
+            <Route path="home" element={<Home />} />
             <Route path="products" element={<ProductsIndex />} />
             <Route path="products/subscription" element={<CategoryPage category="subscription" />} />
             <Route path="products/specialized" element={<CategoryPage category="specialized" />} />
