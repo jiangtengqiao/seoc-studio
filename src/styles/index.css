@@ -901,6 +901,11 @@ body {
   position: absolute;
   inset: 0;
   will-change: transform, opacity;
+  pointer-events: none;
+}
+.cinema-layer a,
+.cinema-layer button {
+  pointer-events: auto;
 }
 .cinema-back-layer {
   transform: translate3d(var(--back-x), var(--back-y), 0) scale(var(--back-scale));

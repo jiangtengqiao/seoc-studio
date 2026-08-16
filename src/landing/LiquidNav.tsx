@@ -77,10 +77,9 @@ export default function LiquidNav() {
             : 'border-stroke/40'
         }`}
         style={{
-          maxWidth: collapsed ? '200px' : '640px',
-          width: '100%',
+          maxWidth: collapsed ? '200px' : 'max-content',
           transition: 'max-width 0.7s cubic-bezier(0.22, 1, 0.36, 1), padding 0.6s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.5s ease, background-color 0.5s ease',
-          padding: collapsed ? '6px 8px' : '7px 10px',
+          padding: collapsed ? '6px 8px' : '7px 12px',
         }}
       >
         {/* Logo */}
